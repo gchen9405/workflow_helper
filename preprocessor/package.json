@@ -1,0 +1,34 @@
+{
+  "name": "workflow-preprocessor",
+  "version": "0.1.0",
+  "description": "Workflow preprocessor: turns flowchart images or free-text process descriptions into a validated, structured workflow graph schema, asking the user targeted clarifying questions when the input is thin.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "workflow-preprocessor": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "tsx src/cli.ts",
+    "inbox": "tsx src/cli.ts --inbox",
+    "check": "tsx src/cli.ts --check"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  }
+}

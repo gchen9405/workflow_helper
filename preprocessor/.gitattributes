@@ -1,0 +1,6 @@
+# Batch files need CRLF: cmd.exe can mis-parse labels and goto in LF-only files.
+*.bat text eol=crlf
+
+# The macOS launcher must stay LF — CRLF would break the shebang line.
+*.command text eol=lf
+*.sh      text eol=lf

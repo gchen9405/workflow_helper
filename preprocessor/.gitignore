@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+.env
+
+# User data: whatever gets dropped in the inbox and whatever comes out.
+inbox/*
+!inbox/README.txt
+results/
