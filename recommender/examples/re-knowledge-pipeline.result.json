@@ -1,0 +1,138 @@
+{
+  "status": "validated",
+  "schema": {
+    "name": "RE knowledge pipeline",
+    "description": null,
+    "nodes": [
+      {
+        "id": "s",
+        "type": "start",
+        "label": "Start",
+        "description": null,
+        "actor": null
+      },
+      {
+        "id": "collect",
+        "type": "task",
+        "label": "Collect RE knowledge sources: papers and existing tools",
+        "description": null,
+        "actor": null
+      },
+      {
+        "id": "distill",
+        "type": "task",
+        "label": "Distill RE knowledge for AI-agent consumption",
+        "description": null,
+        "actor": null
+      },
+      {
+        "id": "expose",
+        "type": "task",
+        "label": "Expose distilled knowledge to AI agent or custom harness",
+        "description": null,
+        "actor": null
+      },
+      {
+        "id": "agent_assist",
+        "type": "task",
+        "label": "Agent assists with RE / software-understanding task",
+        "description": null,
+        "actor": "AI agent"
+      },
+      {
+        "id": "verify",
+        "type": "task",
+        "label": "Verify with humans and/or benchmarks",
+        "description": null,
+        "actor": null
+      },
+      {
+        "id": "f",
+        "type": "end",
+        "label": "Actionable software-understanding output",
+        "description": null,
+        "actor": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "s",
+        "to": "collect",
+        "label": null
+      },
+      {
+        "id": "e2",
+        "from": "collect",
+        "to": "distill",
+        "label": null
+      },
+      {
+        "id": "e3",
+        "from": "distill",
+        "to": "expose",
+        "label": null
+      },
+      {
+        "id": "e4",
+        "from": "expose",
+        "to": "agent_assist",
+        "label": null
+      },
+      {
+        "id": "e5",
+        "from": "agent_assist",
+        "to": "verify",
+        "label": null
+      },
+      {
+        "id": "e6",
+        "from": "verify",
+        "to": "f",
+        "label": "accepted"
+      },
+      {
+        "id": "e7",
+        "from": "verify",
+        "to": "distill",
+        "label": "needs iteration"
+      }
+    ],
+    "provenance": {
+      "workflow.name": "original",
+      "node.s": "original",
+      "node.s.type": "original",
+      "node.s.label": "original",
+      "node.collect": "original",
+      "node.collect.type": "original",
+      "node.collect.label": "original",
+      "node.distill": "original",
+      "node.distill.type": "original",
+      "node.distill.label": "original",
+      "node.expose": "original",
+      "node.expose.type": "original",
+      "node.expose.label": "original",
+      "node.agent_assist": "original",
+      "node.agent_assist.type": "original",
+      "node.agent_assist.label": "original",
+      "node.agent_assist.actor": "original",
+      "node.verify": "original",
+      "node.verify.type": "original",
+      "node.verify.label": "original",
+      "node.f": "original",
+      "node.f.type": "original",
+      "node.f.label": "original",
+      "edge.e1": "original",
+      "edge.e2": "original",
+      "edge.e3": "original",
+      "edge.e4": "original",
+      "edge.e5": "original",
+      "edge.e6": "original",
+      "edge.e6.label": "original",
+      "edge.e7": "original",
+      "edge.e7.label": "original"
+    }
+  },
+  "intermediate": null,
+  "rounds": []
+}

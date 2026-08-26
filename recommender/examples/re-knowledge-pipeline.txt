@@ -1,0 +1,8 @@
+flowchart TD
+    A["Collect RE knowledge sources: papers and existing tools"]
+    --> B["Distill RE knowledge for AI-agent consumption"]
+    B --> C["Expose distilled knowledge to AI agent or custom harness"]
+    C --> D["Agent assists with RE / software-understanding task"]
+    D --> E["Verify with humans and/or benchmarks"]
+    E --> F["Actionable software-understanding output"]
+    E --> B

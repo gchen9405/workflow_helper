@@ -130,6 +130,15 @@ export {
   type ClipboardRunner,
 } from "./io/clipboard.js";
 
+// Interactive clarification IO (terminal). Question type is minimal
+// ({ id, text }) so sibling components can drive it with their own questions.
+export {
+  ReadlineClarificationIO,
+  openClarificationIO,
+  silentIO,
+  type AskableQuestion,
+} from "./io/clarification.js";
+
 // Configuration
 export {
   findEnvFile,

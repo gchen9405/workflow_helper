@@ -1,0 +1,35 @@
+{
+  "name": "workflow-recommender",
+  "version": "0.1.0",
+  "description": "Workflow automation recommender: consumes a preprocessed workflow schema and produces a ranked, explainable list of AI and non-AI improvement opportunities, matched against a deterministic pattern catalog.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "workflow-recommender": "dist/cli.js"
+  },
+  "scripts": {
+    "setup": "npm --prefix ../preprocessor install && npm --prefix ../preprocessor run build && npm install",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "tsx src/cli.ts",
+    "check": "tsx src/cli.ts --check"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "workflow-preprocessor": "file:../preprocessor",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  }
+}
