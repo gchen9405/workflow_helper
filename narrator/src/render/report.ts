@@ -226,7 +226,7 @@ export function renderTitle(ctx: ReportContext): string {
         "which pushes some ratings down. See “Open questions”.",
     );
   }
-  if (!ctx.workflowPath) {
+  if (!ctx.workflow) {
     sentences.push(
       "**Step names were unavailable** — the preprocessor result was not found next to the input, so steps appear " +
         "as internal ids below (pass `--workflow <file>` to fix this).",
@@ -656,9 +656,13 @@ function renderProvenanceSection(ctx: ReportContext, result: NarratableRecommend
     `- Generated from \`${ctx.inputLabel}\`, the result of running \`workflow-recommender\` over this workflow.`,
     `- Recommender status: ${statusPhrase(result)}.`,
     `- Preprocessor status: ${result.source.preprocessStatus}.`,
-    ctx.workflowPath
-      ? `- Step names came from \`${basenameOf(ctx.workflowPath)}\`.`
-      : "- Step names were unavailable, so steps are referred to by their internal ids.",
+    // A workflow can arrive from a file (the CLI) or in memory (library use,
+    // e.g. the end-to-end pipeline): only the first has a file to name.
+    !ctx.workflow
+      ? "- Step names were unavailable, so steps are referred to by their internal ids."
+      : ctx.workflowPath
+        ? `- Step names came from \`${basenameOf(ctx.workflowPath)}\`.`
+        : "- Step names came from the preprocessor result, passed in directly rather than read from a file.",
   );
   if (result.rounds.length === 0) {
     lines.push("- No clarification rounds were run.");

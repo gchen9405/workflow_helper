@@ -106,3 +106,16 @@ describe("narrate — options", () => {
     expect(n.source.workflowPath).toBeNull();
   });
 });
+
+describe("narrate — a workflow given in memory (library use, no file)", () => {
+  it("uses the step names and never claims they were unavailable", async () => {
+    const { json, workflow } = await reFixture();
+    const n = await narrate(null, json, { workflow });
+    expect(n.report).not.toContain("Step names were unavailable");
+    expect(n.report).toContain("Verify with humans and/or benchmarks");
+    expect(n.report).toContain(
+      "- Step names came from the preprocessor result, passed in directly rather than read from a file.",
+    );
+    expect(n.source.workflowPath).toBeNull();
+  });
+});

@@ -1,0 +1,37 @@
+{
+  "name": "workflow-pipeline",
+  "version": "0.1.0",
+  "description": "Workflow pipeline: the end-to-end entry point — a flowchart image or free-text process description in, the narrator's human-readable improvement report out, with the preprocessor's schema and the recommender's ranked opportunities alongside.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "workflow-pipeline": "dist/cli.js"
+  },
+  "scripts": {
+    "setup": "npm --prefix ../narrator run setup && npm --prefix ../narrator run build && npm install",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "tsx src/cli.ts",
+    "check": "tsx src/cli.ts --check",
+    "serve": "tsx examples/server.ts"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "workflow-narrator": "file:../narrator",
+    "workflow-preprocessor": "file:../preprocessor",
+    "workflow-recommender": "file:../recommender"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  }
+}
