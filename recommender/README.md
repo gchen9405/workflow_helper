@@ -41,8 +41,12 @@ repo root serves both components. The end-to-end path is:
 
 ```
 workflow-preprocessor examples/re-knowledge-pipeline.txt --out re.json
-workflow-recommender  re.json          # writes re.recommendations.json
+workflow-recommender  re.json                    # writes re.recommendations.json
+workflow-narrator     re.recommendations.json    # writes re.report.md (see ../narrator)
 ```
+
+The result JSON is the contract; the next stage, `../narrator`, turns it
+into a human-readable report (deterministic body + model-written summary).
 
 ## The contract
 

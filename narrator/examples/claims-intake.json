@@ -1,0 +1,92 @@
+{
+  "status": "validated",
+  "schema": {
+    "name": "Claims intake",
+    "description": "How new insurance claims get from the inbox to a decision.",
+    "nodes": [
+      {
+        "id": "s",
+        "type": "start",
+        "label": "Start",
+        "description": null,
+        "actor": null
+      },
+      {
+        "id": "watch",
+        "type": "task",
+        "label": "Watch the shared inbox for new claims",
+        "description": null,
+        "actor": "claims clerk"
+      },
+      {
+        "id": "extract",
+        "type": "task",
+        "label": "Extract claim details from the submitted forms",
+        "description": null,
+        "actor": "claims clerk"
+      },
+      {
+        "id": "complete",
+        "type": "decision",
+        "label": "Is the claim complete?",
+        "description": null,
+        "actor": "claims clerk"
+      },
+      {
+        "id": "notify",
+        "type": "task",
+        "label": "Notify the claimant of the outcome",
+        "description": null,
+        "actor": "claims clerk"
+      },
+      {
+        "id": "z",
+        "type": "end",
+        "label": "End",
+        "description": null,
+        "actor": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "s",
+        "to": "watch",
+        "label": null
+      },
+      {
+        "id": "e2",
+        "from": "watch",
+        "to": "extract",
+        "label": null
+      },
+      {
+        "id": "e3",
+        "from": "extract",
+        "to": "complete",
+        "label": null
+      },
+      {
+        "id": "e4",
+        "from": "complete",
+        "to": "notify",
+        "label": "yes"
+      },
+      {
+        "id": "e5",
+        "from": "complete",
+        "to": "watch",
+        "label": "no — wait for more documents"
+      },
+      {
+        "id": "e6",
+        "from": "notify",
+        "to": "z",
+        "label": null
+      }
+    ],
+    "provenance": {}
+  },
+  "intermediate": null,
+  "rounds": []
+}

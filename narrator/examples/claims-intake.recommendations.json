@@ -1,0 +1,749 @@
+{
+  "status": "partial",
+  "reason": "the user ended clarification",
+  "openQuestions": [
+    {
+      "id": "missing_attribute:complete:duration",
+      "subject": {
+        "kind": "missing_attribute",
+        "nodeId": "complete",
+        "attribute": "duration"
+      },
+      "text": "How long does one run of \"Is the claim complete?\" (complete) typically take?\n   1) under 5 minutes  2) 5–30 minutes  3) 30 minutes – 2 hours  4) 2 hours – 1 day  5) multiple days",
+      "options": [
+        "under_5_min",
+        "5_to_30_min",
+        "30_min_to_2_h",
+        "2_h_to_1_day",
+        "multi_day"
+      ]
+    }
+  ],
+  "source": {
+    "preprocessStatus": "validated"
+  },
+  "workflowName": "Claims intake",
+  "profiles": [
+    {
+      "nodeId": "watch",
+      "taskClass": {
+        "value": "monitoring_watching",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "many_per_day",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "under_5_min",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "mostly_rules",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "routine",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "regulated",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        }
+      }
+    },
+    {
+      "nodeId": "extract",
+      "taskClass": {
+        "value": "data_extraction",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "daily",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "5_to_30_min",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "guidelines_with_exceptions",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "routine",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "regulated",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": "occasional",
+          "basis": "implied",
+          "evidence": "test evidence"
+        }
+      }
+    },
+    {
+      "nodeId": "complete",
+      "taskClass": {
+        "value": "verification_check",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "daily",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        },
+        "structure": {
+          "value": "mostly_rules",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "routine",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "regulated",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        }
+      }
+    },
+    {
+      "nodeId": "notify",
+      "taskClass": {
+        "value": "communication_notification",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "daily",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "under_5_min",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "fully_rule_based",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "none",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "regulated",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        }
+      }
+    }
+  ],
+  "skippedNodes": [],
+  "motifs": [
+    {
+      "id": "motif.notification_tail:notify,z",
+      "kind": "notification_tail",
+      "nodeIds": [
+        "notify",
+        "z"
+      ],
+      "edgeIds": [
+        "e6"
+      ],
+      "evidence": "after \"Notify the claimant of the outcome\" the workflow only notifies, files, or ends"
+    },
+    {
+      "id": "motif.rework_loop:complete,extract,watch",
+      "kind": "rework_loop",
+      "nodeIds": [
+        "complete",
+        "extract",
+        "watch"
+      ],
+      "edgeIds": [
+        "e2",
+        "e3",
+        "e5"
+      ],
+      "evidence": "a loop of 3 step(s) sends work back through \"Is the claim complete?\""
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "pat.eval_harness_automation@motif.rework_loop:complete,extract,watch",
+      "target": {
+        "kind": "motif",
+        "motifId": "motif.rework_loop:complete,extract,watch"
+      },
+      "patternId": "pat.eval_harness_automation",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.eval_harness_automation"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "benchmark_suite",
+          "name": "Scripted benchmark suite",
+          "deployment": "non_ai",
+          "effort": "medium",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.44,
+        "feasibility": 0.683,
+        "constraint": 0.68,
+        "total": 20,
+        "factors": {
+          "frequency": 5,
+          "duration": 2,
+          "errorBonus": 1,
+          "structure": 2,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 0.85,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "18 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Automate the evaluation harness for a loop of 3 step(s) sends work back through \"Is the claim complete?\". Runs many times a day (aggregated across the steps) at 5–30 minutes per run (aggregated across the steps) and goes wrong occasionally → impact 0.44. Structure: guidelines with exceptions (aggregated across the steps); judgment: routine judgment (aggregated across the steps) → feasibility 0.683. regulated (e.g. PII, health, financial) data (aggregated across the steps) allows 1 deployment option(s); best: Scripted benchmark suite (medium effort) → constraint 0.68. Total 20/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.standardize_inputs@extract",
+      "target": {
+        "kind": "node",
+        "nodeId": "extract"
+      },
+      "patternId": "pat.standardize_inputs",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.standardize_inputs"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "forms_and_checklists",
+          "name": "Standard forms and checklists",
+          "deployment": "non_ai",
+          "effort": "medium",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.36,
+        "feasibility": 0.8,
+        "constraint": 0.68,
+        "total": 20,
+        "factors": {
+          "frequency": 4,
+          "duration": 2,
+          "errorBonus": 1,
+          "structure": 2,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 0.85,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "7 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Standardize the inputs for \"Extract claim details from the submitted forms\" (extract). Runs daily (inferred) at 5–30 minutes per run (inferred) and goes wrong occasionally → impact 0.36. Structure: guidelines with exceptions (inferred); judgment: routine judgment (inferred) → feasibility 0.8. regulated (e.g. PII, health, financial) data (inferred) allows 1 deployment option(s); best: Standard forms and checklists (medium effort) → constraint 0.68. Total 20/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.ai_qa_check@motif.rework_loop:complete,extract,watch",
+      "target": {
+        "kind": "motif",
+        "motifId": "motif.rework_loop:complete,extract,watch"
+      },
+      "patternId": "pat.ai_qa_check",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.ai_qa_check"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "on_prem_qa",
+          "name": "On-prem model",
+          "deployment": "on_prem",
+          "effort": "high",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.44,
+        "feasibility": 0.683,
+        "constraint": 0.56,
+        "total": 17,
+        "factors": {
+          "frequency": 5,
+          "duration": 2,
+          "errorBonus": 1,
+          "structure": 2,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 0.7,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "18 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "AI quality pre-check for a loop of 3 step(s) sends work back through \"Is the claim complete?\". Runs many times a day (aggregated across the steps) at 5–30 minutes per run (aggregated across the steps) and goes wrong occasionally → impact 0.44. Structure: guidelines with exceptions (aggregated across the steps); judgment: routine judgment (aggregated across the steps) → feasibility 0.683. regulated (e.g. PII, health, financial) data (aggregated across the steps) allows 1 deployment option(s); best: On-prem model (high effort) → constraint 0.56. Total 17/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.ai_extraction_assist@extract",
+      "target": {
+        "kind": "node",
+        "nodeId": "extract"
+      },
+      "patternId": "pat.ai_extraction_assist",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.ai_extraction_assist"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "on_prem_model",
+          "name": "On-prem / dedicated model",
+          "deployment": "on_prem",
+          "effort": "high",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.36,
+        "feasibility": 0.683,
+        "constraint": 0.56,
+        "total": 14,
+        "factors": {
+          "frequency": 4,
+          "duration": 2,
+          "errorBonus": 1,
+          "structure": 2,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 0.7,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "7 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "AI-assisted extraction and review for \"Extract claim details from the submitted forms\" (extract). Runs daily (inferred) at 5–30 minutes per run (inferred) and goes wrong occasionally → impact 0.36. Structure: guidelines with exceptions (inferred); judgment: routine judgment (inferred) → feasibility 0.683. regulated (e.g. PII, health, financial) data (inferred) allows 1 deployment option(s); best: On-prem / dedicated model (high effort) → constraint 0.56. Total 14/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.automated_source_monitoring@watch",
+      "target": {
+        "kind": "node",
+        "nodeId": "watch"
+      },
+      "patternId": "pat.automated_source_monitoring",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.automated_source_monitoring"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "feeds_and_alerts",
+          "name": "Feeds, alerts, and saved searches",
+          "deployment": "non_ai",
+          "effort": "low",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.2,
+        "feasibility": 0.8,
+        "constraint": 0.8,
+        "total": 13,
+        "factors": {
+          "frequency": 5,
+          "duration": 1,
+          "errorBonus": 0,
+          "structure": 3,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 1,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "6 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Automate source monitoring for \"Watch the shared inbox for new claims\" (watch). Runs many times a day (inferred) at under 5 minutes per run (inferred) → impact 0.2. Structure: mostly fixed rules (inferred); judgment: routine judgment (inferred) → feasibility 0.8. regulated (e.g. PII, health, financial) data (inferred) allows 1 deployment option(s); best: Feeds, alerts, and saved searches (low effort) → constraint 0.8. Total 13/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.eliminate_step@motif.notification_tail:notify,z",
+      "target": {
+        "kind": "motif",
+        "motifId": "motif.notification_tail:notify,z"
+      },
+      "patternId": "pat.eliminate_step",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.eliminate_step"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "drop_or_merge",
+          "name": "Drop the step or merge it into its predecessor",
+          "deployment": "non_ai",
+          "effort": "low",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.16,
+        "feasibility": 1,
+        "constraint": 0.8,
+        "total": 13,
+        "factors": {
+          "frequency": 4,
+          "duration": 1,
+          "errorBonus": 0,
+          "structure": 4,
+          "judgment": 4,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 1,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "6 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Eliminate the step for after \"Notify the claimant of the outcome\" the workflow only notifies, files, or ends. Runs daily (aggregated across the steps) at under 5 minutes per run (aggregated across the steps) → impact 0.16. Structure: fully rule-based (aggregated across the steps); judgment: no real judgment (aggregated across the steps) → feasibility 1. regulated (e.g. PII, health, financial) data (aggregated across the steps) allows 1 deployment option(s); best: Drop the step or merge it into its predecessor (low effort) → constraint 0.8. Total 13/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.batch_processing@notify",
+      "target": {
+        "kind": "node",
+        "nodeId": "notify"
+      },
+      "patternId": "pat.batch_processing",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.batch_processing"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "scheduled_batches",
+          "name": "Fixed processing windows",
+          "deployment": "non_ai",
+          "effort": "low",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.16,
+        "feasibility": 1,
+        "constraint": 0.8,
+        "total": 13,
+        "factors": {
+          "frequency": 4,
+          "duration": 1,
+          "errorBonus": 0,
+          "structure": 4,
+          "judgment": 4,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 1,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "6 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Batch the work for \"Notify the claimant of the outcome\" (notify). Runs daily (inferred) at under 5 minutes per run (inferred) → impact 0.16. Structure: fully rule-based (inferred); judgment: no real judgment (inferred) → feasibility 1. regulated (e.g. PII, health, financial) data (inferred) allows 1 deployment option(s); best: Fixed processing windows (low effort) → constraint 0.8. Total 13/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.ai_extraction_automate@extract",
+      "target": {
+        "kind": "node",
+        "nodeId": "extract"
+      },
+      "patternId": "pat.ai_extraction_automate",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.standardize_inputs"
+        },
+        {
+          "order": 2,
+          "patternId": "pat.ai_extraction_automate"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "on_prem_automate",
+          "name": "On-prem model, unattended",
+          "deployment": "on_prem",
+          "effort": "high",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.36,
+        "feasibility": 0.667,
+        "constraint": 0.504,
+        "total": 12,
+        "factors": {
+          "frequency": 4,
+          "duration": 2,
+          "errorBonus": 1,
+          "structure": 3,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 0.7,
+          "sequenceDiscount": 0.9
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "7 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "First Standardize the inputs, then Automate extraction with AI for \"Extract claim details from the submitted forms\" (extract). Runs daily (inferred) at 5–30 minutes per run (inferred) and goes wrong occasionally → impact 0.36. Structure: guidelines with exceptions (inferred); judgment: routine judgment (inferred) → feasibility 0.667 after step 1 (Standardize the inputs) raises structure. regulated (e.g. PII, health, financial) data (inferred) allows 1 deployment option(s); best: On-prem model, unattended (high effort) → constraint 0.504. Total 12/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.batch_processing@complete",
+      "target": {
+        "kind": "node",
+        "nodeId": "complete"
+      },
+      "patternId": "pat.batch_processing",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.batch_processing"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "scheduled_batches",
+          "name": "Fixed processing windows",
+          "deployment": "non_ai",
+          "effort": "low",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.16,
+        "feasibility": 0.867,
+        "constraint": 0.8,
+        "total": 11,
+        "factors": {
+          "frequency": 4,
+          "duration": 1,
+          "errorBonus": 0,
+          "structure": 3,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 1,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "low",
+      "confidenceReasons": [
+        "duration unknown — scored at the lowest value (under 5 minutes)",
+        "5 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Batch the work for \"Is the claim complete?\" (complete). Runs daily (inferred) at under 5 minutes (assumed) per run (unknown, assumed worst case) → impact 0.16. Structure: mostly fixed rules (inferred); judgment: routine judgment (inferred) → feasibility 0.867. regulated (e.g. PII, health, financial) data (inferred) allows 1 deployment option(s); best: Fixed processing windows (low effort) → constraint 0.8. Total 11/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.ai_qa_check@complete",
+      "target": {
+        "kind": "node",
+        "nodeId": "complete"
+      },
+      "patternId": "pat.ai_qa_check",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.ai_qa_check"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "on_prem_qa",
+          "name": "On-prem model",
+          "deployment": "on_prem",
+          "effort": "high",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.16,
+        "feasibility": 0.8,
+        "constraint": 0.56,
+        "total": 7,
+        "factors": {
+          "frequency": 4,
+          "duration": 1,
+          "errorBonus": 0,
+          "structure": 3,
+          "judgment": 3,
+          "sensitivityFriction": 0.8,
+          "effortFactor": 0.7,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "low",
+      "confidenceReasons": [
+        "duration unknown — scored at the lowest value (under 5 minutes)",
+        "5 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "AI quality pre-check for \"Is the claim complete?\" (complete). Runs daily (inferred) at under 5 minutes (assumed) per run (unknown, assumed worst case) → impact 0.16. Structure: mostly fixed rules (inferred); judgment: routine judgment (inferred) → feasibility 0.8. regulated (e.g. PII, health, financial) data (inferred) allows 1 deployment option(s); best: On-prem model (high effort) → constraint 0.56. Total 7/100.",
+      "adviceRefs": []
+    }
+  ],
+  "excluded": [
+    {
+      "patternId": "pat.ai_summarize_monitoring",
+      "target": {
+        "kind": "node",
+        "nodeId": "watch"
+      },
+      "reason": "all variants exceed data sensitivity regulated"
+    }
+  ],
+  "provenance": {
+    "profile.watch.class": "inferred",
+    "profile.watch.attr.frequency": "inferred",
+    "profile.watch.attr.duration": "inferred",
+    "profile.watch.attr.structure": "inferred",
+    "profile.watch.attr.judgment": "inferred",
+    "profile.watch.attr.dataSensitivity": "inferred",
+    "profile.watch.attr.actorKind": "inferred",
+    "profile.extract.class": "inferred",
+    "profile.extract.attr.frequency": "inferred",
+    "profile.extract.attr.duration": "inferred",
+    "profile.extract.attr.structure": "inferred",
+    "profile.extract.attr.judgment": "inferred",
+    "profile.extract.attr.dataSensitivity": "inferred",
+    "profile.extract.attr.actorKind": "inferred",
+    "profile.extract.attr.errorProneness": "inferred",
+    "profile.complete.class": "inferred",
+    "profile.complete.attr.frequency": "inferred",
+    "profile.complete.attr.structure": "inferred",
+    "profile.complete.attr.judgment": "inferred",
+    "profile.complete.attr.dataSensitivity": "inferred",
+    "profile.complete.attr.actorKind": "inferred",
+    "profile.notify.class": "inferred",
+    "profile.notify.attr.frequency": "inferred",
+    "profile.notify.attr.duration": "inferred",
+    "profile.notify.attr.structure": "inferred",
+    "profile.notify.attr.judgment": "inferred",
+    "profile.notify.attr.dataSensitivity": "inferred",
+    "profile.notify.attr.actorKind": "inferred"
+  },
+  "inputProvenance": {},
+  "rounds": [],
+  "inheritedOpenQuestions": []
+}

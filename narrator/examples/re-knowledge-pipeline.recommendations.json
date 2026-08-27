@@ -1,0 +1,621 @@
+{
+  "status": "recommended",
+  "source": {
+    "preprocessStatus": "validated"
+  },
+  "workflowName": "RE knowledge pipeline",
+  "profiles": [
+    {
+      "nodeId": "collect",
+      "taskClass": {
+        "value": "research_gathering",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "weekly",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "30_min_to_2_h",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "guidelines_with_exceptions",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "experienced",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "internal",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        }
+      }
+    },
+    {
+      "nodeId": "distill",
+      "taskClass": {
+        "value": "knowledge_distillation",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "weekly",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "2_h_to_1_day",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "guidelines_with_exceptions",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "expert",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "internal",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        }
+      }
+    },
+    {
+      "nodeId": "expose",
+      "taskClass": {
+        "value": "tool_integration",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "monthly",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "30_min_to_2_h",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "mostly_rules",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "experienced",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "internal",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        }
+      }
+    },
+    {
+      "nodeId": "agent_assist",
+      "taskClass": {
+        "value": "document_review",
+        "basis": "explicit",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "daily",
+          "basis": "explicit",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "30_min_to_2_h",
+          "basis": "explicit",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "guidelines_with_exceptions",
+          "basis": "explicit",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "experienced",
+          "basis": "explicit",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "internal",
+          "basis": "explicit",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "ai_agent",
+          "basis": "explicit",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": null,
+          "basis": null,
+          "evidence": null
+        }
+      }
+    },
+    {
+      "nodeId": "verify",
+      "taskClass": {
+        "value": "evaluation_benchmarking",
+        "basis": "implied",
+        "evidence": "test evidence"
+      },
+      "attributes": {
+        "frequency": {
+          "value": "daily",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "duration": {
+          "value": "30_min_to_2_h",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "structure": {
+          "value": "guidelines_with_exceptions",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "judgment": {
+          "value": "experienced",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "dataSensitivity": {
+          "value": "internal",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "actorKind": {
+          "value": "human",
+          "basis": "implied",
+          "evidence": "test evidence"
+        },
+        "errorProneness": {
+          "value": "occasional",
+          "basis": "implied",
+          "evidence": "test evidence"
+        }
+      }
+    }
+  ],
+  "skippedNodes": [],
+  "motifs": [
+    {
+      "id": "motif.long_manual_chain:collect,distill,expose",
+      "kind": "long_manual_chain",
+      "nodeIds": [
+        "collect",
+        "distill",
+        "expose"
+      ],
+      "edgeIds": [
+        "e2",
+        "e3"
+      ],
+      "evidence": "3 manual steps in an unbroken run by the same person"
+    },
+    {
+      "id": "motif.rework_loop:agent_assist,distill,expose,verify",
+      "kind": "rework_loop",
+      "nodeIds": [
+        "agent_assist",
+        "distill",
+        "expose",
+        "verify"
+      ],
+      "edgeIds": [
+        "e3",
+        "e4",
+        "e5",
+        "e7"
+      ],
+      "evidence": "a loop of 4 step(s) sends work back through \"Agent assists with RE / software-understanding task\""
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "pat.ai_qa_check@motif.rework_loop:agent_assist,distill,expose,verify",
+      "target": {
+        "kind": "motif",
+        "motifId": "motif.rework_loop:agent_assist,distill,expose,verify"
+      },
+      "patternId": "pat.ai_qa_check",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.ai_qa_check"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "internal_endpoint_qa",
+          "name": "Internal LLM endpoint",
+          "deployment": "internal_endpoint",
+          "effort": "medium",
+          "sensitivityCeiling": "confidential"
+        },
+        {
+          "variantId": "on_prem_qa",
+          "name": "On-prem model",
+          "deployment": "on_prem",
+          "effort": "high",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.68,
+        "feasibility": 0.517,
+        "constraint": 0.85,
+        "total": 30,
+        "factors": {
+          "frequency": 4,
+          "duration": 4,
+          "errorBonus": 1,
+          "structure": 2,
+          "judgment": 1,
+          "sensitivityFriction": 1,
+          "effortFactor": 0.85,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "19 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "AI quality pre-check for a loop of 4 step(s) sends work back through \"Agent assists with RE / software-understanding task\". Runs daily (aggregated across the steps) at 2 hours – 1 day per run (aggregated across the steps) and goes wrong occasionally → impact 0.68. Structure: guidelines with exceptions (aggregated across the steps); judgment: deep expert judgment (aggregated across the steps) → feasibility 0.517. internal data (aggregated across the steps) allows 2 deployment option(s); best: Internal LLM endpoint (medium effort) → constraint 0.85. Total 30/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.eval_harness_automation@motif.rework_loop:agent_assist,distill,expose,verify",
+      "target": {
+        "kind": "motif",
+        "motifId": "motif.rework_loop:agent_assist,distill,expose,verify"
+      },
+      "patternId": "pat.eval_harness_automation",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.eval_harness_automation"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "benchmark_suite",
+          "name": "Scripted benchmark suite",
+          "deployment": "non_ai",
+          "effort": "medium",
+          "sensitivityCeiling": "regulated"
+        },
+        {
+          "variantId": "ai_graded_evals",
+          "name": "AI-graded evaluations",
+          "deployment": "internal_endpoint",
+          "effort": "medium",
+          "sensitivityCeiling": "confidential"
+        }
+      ],
+      "score": {
+        "impact": 0.68,
+        "feasibility": 0.517,
+        "constraint": 0.85,
+        "total": 30,
+        "factors": {
+          "frequency": 4,
+          "duration": 4,
+          "errorBonus": 1,
+          "structure": 2,
+          "judgment": 1,
+          "sensitivityFriction": 1,
+          "effortFactor": 0.85,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "19 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Automate the evaluation harness for a loop of 4 step(s) sends work back through \"Agent assists with RE / software-understanding task\". Runs daily (aggregated across the steps) at 2 hours – 1 day per run (aggregated across the steps) and goes wrong occasionally → impact 0.68. Structure: guidelines with exceptions (aggregated across the steps); judgment: deep expert judgment (aggregated across the steps) → feasibility 0.517. internal data (aggregated across the steps) allows 2 deployment option(s); best: Scripted benchmark suite (medium effort) → constraint 0.85. Total 30/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.standardize_inputs@agent_assist",
+      "target": {
+        "kind": "node",
+        "nodeId": "agent_assist"
+      },
+      "patternId": "pat.standardize_inputs",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.standardize_inputs"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "forms_and_checklists",
+          "name": "Standard forms and checklists",
+          "deployment": "non_ai",
+          "effort": "medium",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.48,
+        "feasibility": 0.733,
+        "constraint": 0.85,
+        "total": 30,
+        "factors": {
+          "frequency": 4,
+          "duration": 3,
+          "errorBonus": 0,
+          "structure": 2,
+          "judgment": 2,
+          "sensitivityFriction": 1,
+          "effortFactor": 0.85,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "high",
+      "confidenceReasons": [],
+      "affectedBy": [],
+      "explanation": "Standardize the inputs for \"Agent assists with RE / software-understanding task\" (agent_assist). Runs daily (from the input) at 30 minutes – 2 hours per run (from the input) → impact 0.48. Structure: guidelines with exceptions (from the input); judgment: experienced judgment (from the input) → feasibility 0.733. internal data (from the input) allows 1 deployment option(s); best: Standard forms and checklists (medium effort) → constraint 0.85. Total 30/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.eval_harness_automation@verify",
+      "target": {
+        "kind": "node",
+        "nodeId": "verify"
+      },
+      "patternId": "pat.eval_harness_automation",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.eval_harness_automation"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "benchmark_suite",
+          "name": "Scripted benchmark suite",
+          "deployment": "non_ai",
+          "effort": "medium",
+          "sensitivityCeiling": "regulated"
+        },
+        {
+          "variantId": "ai_graded_evals",
+          "name": "AI-graded evaluations",
+          "deployment": "internal_endpoint",
+          "effort": "medium",
+          "sensitivityCeiling": "confidential"
+        }
+      ],
+      "score": {
+        "impact": 0.52,
+        "feasibility": 0.6,
+        "constraint": 0.85,
+        "total": 27,
+        "factors": {
+          "frequency": 4,
+          "duration": 3,
+          "errorBonus": 1,
+          "structure": 2,
+          "judgment": 2,
+          "sensitivityFriction": 1,
+          "effortFactor": 0.85,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "7 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Automate the evaluation harness for \"Verify with humans and/or benchmarks\" (verify). Runs daily (inferred) at 30 minutes – 2 hours per run (inferred) and goes wrong occasionally → impact 0.52. Structure: guidelines with exceptions (inferred); judgment: experienced judgment (inferred) → feasibility 0.6. internal data (inferred) allows 2 deployment option(s); best: Scripted benchmark suite (medium effort) → constraint 0.85. Total 27/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.automated_source_monitoring@collect",
+      "target": {
+        "kind": "node",
+        "nodeId": "collect"
+      },
+      "patternId": "pat.automated_source_monitoring",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.automated_source_monitoring"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "feeds_and_alerts",
+          "name": "Feeds, alerts, and saved searches",
+          "deployment": "non_ai",
+          "effort": "low",
+          "sensitivityCeiling": "regulated"
+        },
+        {
+          "variantId": "ai_triaged_alerts",
+          "name": "AI-triaged alerts",
+          "deployment": "internal_endpoint",
+          "effort": "medium",
+          "sensitivityCeiling": "confidential"
+        }
+      ],
+      "score": {
+        "impact": 0.36,
+        "feasibility": 0.6,
+        "constraint": 1,
+        "total": 22,
+        "factors": {
+          "frequency": 3,
+          "duration": 3,
+          "errorBonus": 0,
+          "structure": 2,
+          "judgment": 2,
+          "sensitivityFriction": 1,
+          "effortFactor": 1,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "6 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Automate source monitoring for \"Collect RE knowledge sources: papers and existing tools\" (collect). Runs weekly (inferred) at 30 minutes – 2 hours per run (inferred) → impact 0.36. Structure: guidelines with exceptions (inferred); judgment: experienced judgment (inferred) → feasibility 0.6. internal data (inferred) allows 2 deployment option(s); best: Feeds, alerts, and saved searches (low effort) → constraint 1. Total 22/100.",
+      "adviceRefs": []
+    },
+    {
+      "id": "pat.rag_knowledge_base@distill",
+      "target": {
+        "kind": "node",
+        "nodeId": "distill"
+      },
+      "patternId": "pat.rag_knowledge_base",
+      "sequence": [
+        {
+          "order": 1,
+          "patternId": "pat.rag_knowledge_base"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": "internal_rag",
+          "name": "RAG store on the internal endpoint",
+          "deployment": "internal_endpoint",
+          "effort": "high",
+          "sensitivityCeiling": "confidential"
+        },
+        {
+          "variantId": "on_prem_rag",
+          "name": "On-prem RAG store",
+          "deployment": "on_prem",
+          "effort": "high",
+          "sensitivityCeiling": "regulated"
+        }
+      ],
+      "score": {
+        "impact": 0.48,
+        "feasibility": 0.517,
+        "constraint": 0.7,
+        "total": 17,
+        "factors": {
+          "frequency": 3,
+          "duration": 4,
+          "errorBonus": 0,
+          "structure": 2,
+          "judgment": 1,
+          "sensitivityFriction": 1,
+          "effortFactor": 0.7,
+          "sequenceDiscount": 1
+        }
+      },
+      "confidence": "medium",
+      "confidenceReasons": [
+        "6 value(s) inferred from the step text rather than stated"
+      ],
+      "affectedBy": [],
+      "explanation": "Build a retrievable knowledge base for \"Distill RE knowledge for AI-agent consumption\" (distill). Runs weekly (inferred) at 2 hours – 1 day per run (inferred) → impact 0.48. Structure: guidelines with exceptions (inferred); judgment: deep expert judgment (inferred) → feasibility 0.517. internal data (inferred) allows 2 deployment option(s); best: RAG store on the internal endpoint (high effort) → constraint 0.7. Total 17/100.",
+      "adviceRefs": []
+    }
+  ],
+  "excluded": [],
+  "provenance": {
+    "profile.collect.class": "inferred",
+    "profile.collect.attr.frequency": "inferred",
+    "profile.collect.attr.duration": "inferred",
+    "profile.collect.attr.structure": "inferred",
+    "profile.collect.attr.judgment": "inferred",
+    "profile.collect.attr.dataSensitivity": "inferred",
+    "profile.collect.attr.actorKind": "inferred",
+    "profile.distill.class": "inferred",
+    "profile.distill.attr.frequency": "inferred",
+    "profile.distill.attr.duration": "inferred",
+    "profile.distill.attr.structure": "inferred",
+    "profile.distill.attr.judgment": "inferred",
+    "profile.distill.attr.dataSensitivity": "inferred",
+    "profile.distill.attr.actorKind": "inferred",
+    "profile.expose.class": "inferred",
+    "profile.expose.attr.frequency": "inferred",
+    "profile.expose.attr.duration": "inferred",
+    "profile.expose.attr.structure": "inferred",
+    "profile.expose.attr.judgment": "inferred",
+    "profile.expose.attr.dataSensitivity": "inferred",
+    "profile.expose.attr.actorKind": "inferred",
+    "profile.agent_assist.class": "original",
+    "profile.agent_assist.attr.frequency": "original",
+    "profile.agent_assist.attr.duration": "original",
+    "profile.agent_assist.attr.structure": "original",
+    "profile.agent_assist.attr.judgment": "original",
+    "profile.agent_assist.attr.dataSensitivity": "original",
+    "profile.agent_assist.attr.actorKind": "original",
+    "profile.verify.class": "inferred",
+    "profile.verify.attr.frequency": "inferred",
+    "profile.verify.attr.duration": "inferred",
+    "profile.verify.attr.structure": "inferred",
+    "profile.verify.attr.judgment": "inferred",
+    "profile.verify.attr.dataSensitivity": "inferred",
+    "profile.verify.attr.actorKind": "inferred",
+    "profile.verify.attr.errorProneness": "inferred"
+  },
+  "inputProvenance": {},
+  "rounds": [],
+  "inheritedOpenQuestions": []
+}
