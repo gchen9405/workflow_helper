@@ -17,19 +17,19 @@ import type { NarratableRecommendation } from "../schema/input.js";
 import { wordCount } from "../render/phrases.js";
 import { SUMMARY_SYSTEM } from "./prompts.js";
 
-export const OVERVIEW_MAX_WORDS = 250;
+export const OVERVIEW_MAX_WORDS = 200;
 export const HEADLINE_MAX_WORDS = 24;
 
 export const SummarySchema = z.object({
   headline: z
     .string()
     .min(1)
-    .describe("One sentence, at most 20 words, stating the main conclusion."),
+    .describe("One plain sentence, at most 20 words, stating the main conclusion."),
   overview: z
     .string()
     .min(1)
     .describe(
-      "Two to four short paragraphs of plain prose separated by blank lines, under 250 words: the top recommendations, where they apply, why they rank there, and how sure the report is.",
+      "Two or three short paragraphs of plain prose separated by blank lines, about 150 words and never over 200: the top recommendations, where they apply, why they come first, and how much to trust the answer. Everyday words, short sentences — the reader is not technical.",
     ),
   takeaways: z
     .array(z.string().min(1))
@@ -62,6 +62,14 @@ export function collectFacts(result: NarratableRecommendation): SummaryFacts {
 const SCORE_MENTION = /\b(\d{1,3})\s*(?:\/|out of)\s*100\b/g;
 const INTERNAL_ID = /\b(?:pat|motif)\.[a-z0-9_]+/g;
 const HEADING = /(^|\n)\s*#{1,6}\s/;
+/**
+ * The score arithmetic — "impact 0.44", "feasibility 0.683" — belongs to the
+ * audit layer, which the report keeps in a collapsed block under each
+ * recommendation. Quoting it in the summary is not ungrounded, just
+ * unreadable, and the summary is the one section written for a reader who
+ * will not open that block.
+ */
+const INTERNAL_ARITHMETIC = /\b(impact|feasibility|constraint)\s+(?:of\s+)?0?\.\d+/gi;
 
 function fields(summary: ModelSummary): Array<[string, string]> {
   return [
@@ -93,6 +101,11 @@ export function checkSummary(summary: ModelSummary, facts: SummaryFacts): string
     }
     for (const match of text.matchAll(INTERNAL_ID)) {
       errors.push(`${name} uses the internal identifier "${match[0]}" — refer to recommendations and shapes by the names the report uses`);
+    }
+    for (const match of text.matchAll(INTERNAL_ARITHMETIC)) {
+      errors.push(
+        `${name} quotes the internal figure "${match[0]}" — the summary is for a non-technical reader; describe the reason in plain words instead (the report keeps the arithmetic in its own collapsed block)`,
+      );
     }
     if (HEADING.test(text)) {
       errors.push(`${name} contains a markdown heading — plain prose only`);

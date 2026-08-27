@@ -20,7 +20,7 @@ describe("narrate — terminal states", () => {
     expect(n.report).toContain("## Summary\n\n_Written by the model");
     // The body the reader gets is byte-for-byte what the model was shown.
     expect(n.report).toContain(n.body);
-    expect(n.report.indexOf("## Summary")).toBeLessThan(n.report.indexOf("## The workflow at a glance"));
+    expect(n.report.indexOf("## Summary")).toBeLessThan(n.report.indexOf("## Where to start"));
     expect(n.report.endsWith("\n")).toBe(true);
     expect(n.source).toEqual({
       inputLabel: "re.recommendations.json",
@@ -38,7 +38,7 @@ describe("narrate — terminal states", () => {
     if (n.summary?.kind !== "deterministic") return;
     expect(n.summary.reason).toBe("no model summary was requested");
     expect(n.report).toContain("_Written deterministically — no model summary was requested._");
-    expect(n.report).toContain("## Recommendations");
+    expect(n.report).toContain("## The recommendations");
   });
 
   it("fallback when the model declines", async () => {
@@ -47,7 +47,7 @@ describe("narrate — terminal states", () => {
     expect(n.status).toBe("fallback");
     if (n.summary?.kind !== "deterministic") throw new Error("expected deterministic");
     expect(n.summary.reason).toContain("declined");
-    expect(n.report).toContain("## Recommendations"); // the body is never lost
+    expect(n.report).toContain("## The recommendations"); // the body is never lost
   });
 
   it("fallback when the summary stays ungrounded through the repair loop", async () => {
@@ -91,15 +91,17 @@ describe("narrate — options", () => {
     const one = await narrate(null, json, { workflow, top: 1 });
     expect(one.report).toContain("### 1. ");
     expect(one.report).not.toContain("### 2. ");
-    expect(one.report).toContain("### Further opportunities");
+    expect(one.report).toMatch(/The top 1 in full\. The remaining \d+ are in the table above/);
+    // Tabulated or not, every opportunity keeps its row in the decision table.
+    expect(one.report).toContain("| 2 | ");
     const all = await narrate(null, json, { workflow, top: 1000 });
-    expect(all.report).not.toContain("### Further opportunities");
+    expect(all.report).toMatch(/All \d+, in full\./);
   });
 
   it("works without a workflow, using ids", async () => {
     const { json } = await reFixture();
     const n = await narrate(null, json);
-    expect(n.report).toContain("step names unavailable");
+    expect(n.report).toContain("**Step names were unavailable**");
     expect(n.report).toContain("step `verify`");
     expect(n.source.workflowPath).toBeNull();
   });

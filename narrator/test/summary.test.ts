@@ -44,6 +44,16 @@ describe("checkSummary", () => {
     expect(checkSummary(summary({ caveats: ["See motif.rework_loop:a,b."] }), facts)).toHaveLength(1);
   });
 
+  it("rejects the internal score arithmetic — the summary is the non-technical layer", () => {
+    const errors = checkSummary(summary({ overview: "It wins on impact 0.44 and feasibility 0.683." }), facts);
+    expect(errors).toHaveLength(2);
+    expect(errors[0]).toContain('"impact 0.44"');
+    expect(errors[1]).toContain('"feasibility 0.683"');
+    expect(checkSummary(summary({ takeaways: ["Constraint of .56 holds it back."] }), facts)[0]).toContain("takeaways[0]");
+    // Plain-language reasons, and the bands the report prints, are fine.
+    expect(checkSummary(summary({ overview: "A Promising change: the step runs many times a day." }), facts)).toEqual([]);
+  });
+
   it("rejects an over-long overview, an over-long headline, and markdown headings", () => {
     const long = Array.from({ length: 260 }, () => "word").join(" ");
     expect(checkSummary(summary({ overview: long }), facts)[0]).toMatch(/overview is 260 words/);
@@ -111,8 +121,25 @@ describe("deterministicSummary", () => {
     const { ctx, result } = await ctxFor(await claimsPartialFixture());
     const s = deterministicSummary(ctx, result);
     expect(s.overview).toContain("The result is partial");
-    expect(s.overview).toMatch(/\d+ patterns? (was|were) ruled out/);
+    expect(s.takeaways.some((t) => /\d+ patterns? (is|are) ruled out by data sensitivity/.test(t))).toBe(true);
     expect(s.caveats.some((c) => /1 attribute question remains open/.test(c))).toBe(true);
+    expect(checkSummary(s, collectFacts(result))).toEqual([]);
+  });
+
+  it("gives each slot a different fact, rather than restating the ranking", async () => {
+    const { ctx, result } = await ctxFor(await claimsPartialFixture());
+    const s = deterministicSummary(ctx, result);
+    // The takeaways describe the SET: the action, the AI split, the lever,
+    // the exclusions, the confidence spread …
+    expect(s.takeaways[0]).toMatch(/^Start with /);
+    expect(s.takeaways.some((t) => /need no AI at all/.test(t))).toBe(true);
+    expect(s.takeaways.some((t) => /the single biggest lever — 2 of the top 3/.test(t))).toBe(true);
+    expect(s.takeaways.some((t) => /marked low confidence/.test(t))).toBe(true);
+    // … and none of them is a copy of a decision-table row (rank 2 and 3).
+    for (const runnerUp of result.opportunities.slice(1, 3)) {
+      const name = STARTER_CATALOG.find((p) => p.id === runnerUp.patternId)!.name;
+      expect(s.takeaways.some((t) => t.startsWith(name))).toBe(false);
+    }
     expect(checkSummary(s, collectFacts(result))).toEqual([]);
   });
 });
