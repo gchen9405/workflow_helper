@@ -1,3 +1,8 @@
 node_modules/
 dist/
 .env
+
+# User data: whatever gets dropped in the inbox and whatever comes out.
+inbox/*
+!inbox/README.txt
+reports/

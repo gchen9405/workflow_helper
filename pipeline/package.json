@@ -1,7 +1,7 @@
 {
   "name": "workflow-pipeline",
   "version": "0.1.0",
-  "description": "Workflow pipeline: the end-to-end entry point — a flowchart image or free-text process description in, the narrator's human-readable improvement report out, with the preprocessor's schema and the recommender's ranked opportunities alongside.",
+  "description": "Workflow pipeline: the end-to-end entry point \u2014 a flowchart image or free-text process description in, the narrator's human-readable improvement report out, with the preprocessor's schema and the recommender's ranked opportunities alongside.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "tsx src/cli.ts",
+    "inbox": "tsx src/cli.ts --inbox",
     "check": "tsx src/cli.ts --check",
     "serve": "tsx examples/server.ts"
   },

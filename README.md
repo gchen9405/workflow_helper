@@ -19,5 +19,9 @@ cd pipeline && npm run setup && cp .env.example .env    # fill in LLM_ENDPOINT /
 npx tsx src/cli.ts --text "A new order comes in, then …"
 ```
 
+No terminal needed for day-to-day use: drag files into `pipeline/inbox/`
+and double-click `Make improvement reports` — one report per file lands in
+`pipeline/reports/`.
+
 All four talk to one internal OpenAI-compatible endpoint, configured once
 in a `.env` at this root (or in the environment).

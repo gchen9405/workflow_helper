@@ -47,6 +47,38 @@ answer with the option number). Press **Enter** to skip a question, type
 **`stop`** to finish with what has been gathered, or pass `--no-interactive`
 to ask nothing at all.
 
+## The drop folder (no typing)
+
+For anyone who should not have to touch a terminal command: drag files into
+`inbox/`, then double-click the launcher for your platform. It opens a
+terminal/console window, so the clarifying questions still happen right
+there.
+
+```text
+pipeline/
+├── Make improvement reports.command   ← double-click this on macOS
+├── Make improvement reports.bat       ← double-click this on Windows
+├── inbox/                             ← drag images or .txt/.md descriptions here
+│   ├── README.txt                     (instructions, skipped as an input)
+│   └── processed/                     (consumed inputs are moved here)
+└── reports/                           ← one <name>.report.md per input
+```
+
+On Linux, `npm run inbox` does the same thing.
+
+On first run the launchers install and build everything (`npm run setup`)
+and, when no `.env` exists here or at the repo root, create one from
+`.env.example` and offer to open it. Nothing is overwritten: dropping
+`flow.png` twice keeps both `processed/flow.png` and `processed/flow-2.png`,
+with reports in `flow.report.md` and `flow-2.report.md`.
+
+The same thing from a terminal, with `--keep` to leave inputs in place:
+
+```sh
+npm run inbox
+npx tsx src/cli.ts --inbox --keep
+```
+
 ## The guarantee
 
 The chain is *total*: every stage accepts every terminal state of the stage
@@ -79,15 +111,20 @@ loops; every value in the report is traceable to the result it came from.
 ## CLI
 
 ```
+workflow-pipeline --inbox                    everything dropped in inbox/ (see below)
 workflow-pipeline <file>                     image or text; modality detected from content
+workflow-pipeline <folder> --out-dir <d>     every input in the folder
 workflow-pipeline --text "<description>"     inline text
 workflow-pipeline --clipboard                image or text from the clipboard
 cat notes.md | workflow-pipeline             piped stdin (or an explicit "-")
 
+  --inbox                 Process everything in inbox/ into reports/
+  --keep                  In inbox mode, do not move inputs to inbox/processed/
   --out <file>            Write the report here ("-" for stdout). Default: <stem>.report.md
                           next to a file input; stdout for --text, --clipboard and stdin
+  --out-dir <dir>         Write one <name>.report.md per input (required for folders)
   --json <file>           Also write the full result — report, workflow schema,
-                          recommendations, every stage's status — as JSON
+                          recommendations, every stage's status — as JSON (single input only)
   --top <n>               Opportunities written up in full in the report (default 5)
   --max-rounds <n>        Clarification round cap, per stage (default 10)
   --no-interactive        Ask no questions; thin input yields a partial analysis
@@ -97,9 +134,11 @@ cat notes.md | workflow-pipeline             piped stdin (or an explicit "-")
 Exit codes: 0 complete · 2 fallback · 3 notice · 1 error
 ```
 
-The pipeline runs one workflow at a time. For batches, the stages' own CLIs
-take folders (`workflow-preprocessor <folder> --out-dir …`, then the
-recommender and narrator over the results).
+Folder and inbox runs process every image and text file found, print a
+`✔ ◐ ✘` summary, and exit with the worst outcome seen (a run that threw —
+endpoint down, say — beats everything and exits 1; that input is left in
+the inbox to be retried). `--out-dir` runs refresh their folder on re-run;
+the inbox never overwrites an earlier report.
 
 Configuration is identical to the siblings — `LLM_ENDPOINT`, `LLM_API_KEY`,
 `LLM_MODEL`, optionally the `LLM_VISION_*` split for flowchart images — via
@@ -271,6 +310,10 @@ pipeline/
 │   └── index.ts               # public API + re-exports of everything a host needs
 ├── examples/server.ts         # reference HTTP embedding (node:http, no dependencies)
 ├── test/                      # vitest, entirely offline (FakeLlm)
+├── Make improvement reports.command   # double-clickable launcher (macOS)
+├── Make improvement reports.bat       # double-clickable launcher (Windows)
+├── inbox/                     # drop folder (gitignored except its README.txt)
+├── reports/                   # inbox output (gitignored)
 ├── .env.example
 └── README.md
 ```
