@@ -26,7 +26,7 @@
  * built per call; nothing is carried over between calls.
  */
 import type { ZodType } from "zod";
-import type { ImageMediaType } from "../io/input.js";
+import type { ImageMediaType } from "../io/payload.js";
 
 /**
  * Provider-neutral content parts. The pipeline stages produce these; each

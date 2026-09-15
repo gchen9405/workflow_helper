@@ -20,12 +20,12 @@
  * exhausted, HTTP or network error — degrades to the deterministic summary
  * rather than losing the report: the model layer only ever adds.
  */
-import type { LlmClient, Workflow } from "workflow-preprocessor";
+import type { LlmClient, Workflow } from "workflow-preprocessor/core";
 import {
   LlmHttpError,
   LlmRefusalError,
   LlmRepairExhaustedError,
-} from "workflow-preprocessor";
+} from "workflow-preprocessor/core";
 import { STARTER_CATALOG, type PatternDef } from "workflow-recommender";
 import { hasBody, loadRecommendation } from "../schema/input.js";
 import type { Narration, NarrationSource, SummaryBlock } from "../schema/narration.js";

@@ -33,6 +33,14 @@
  * Network errors, 429s, and 5xx responses are retried with backoff; other
  * HTTP errors surface as `LlmHttpError` with the status code, so the CLI can
  * give targeted hints (401/403 -> check LLM_API_KEY).
+ *
+ * The client also runs in a browser, where it talks to a same-origin proxy
+ * that adds the key and picks the model: the environment is read through
+ * `envVar` (undefined when there is no `process`), the default `fetch` is
+ * called unbound (calling the browser's `fetch` as a method of this object
+ * throws "Illegal invocation"), and a host can set a per-attempt `timeoutMs`,
+ * pass an `AbortSignal`, and narrow `retryableStatuses` so a proxy's own
+ * timeout answer is not retried.
  */
 import { z, type ZodType } from "zod";
 import {
@@ -42,6 +50,7 @@ import {
   type LlmContentPart,
   type StructuredCallOptions,
 } from "./client.js";
+import { envVar } from "./envVar.js";
 import { repairMessage } from "./prompts.js";
 
 export class LlmHttpError extends Error {
@@ -66,11 +75,29 @@ export interface InternalLlmClientOptions {
   maxTokens?: number;
   /** Request response_format json_object. Default: true unless LLM_JSON_MODE=off. */
   jsonMode?: boolean;
-  /** Retries for network errors / 429 / 5xx. Default 2. */
+  /** Retries for network errors and retryable HTTP statuses. Default 2. */
   maxNetworkRetries?: number;
   /** Base backoff delay in ms (multiplied by the attempt number). Default 500. */
   retryDelayMs?: number;
-  /** Injectable fetch for tests. Default: global fetch. */
+  /**
+   * HTTP statuses that are retried. Default: 429 and every status >= 500.
+   * A browser behind a proxy that answers 504 on its own upstream timeout
+   * passes `[429, 502, 503]`, so a two-minute wait is not doubled.
+   */
+  retryableStatuses?: readonly number[];
+  /**
+   * Timeout per HTTP attempt, in ms. A timed-out attempt fails at once with
+   * "could not reach the LLM endpoint at <url>: timed out after Ns" and is
+   * NOT retried. Default: no timeout (the previous behavior).
+   */
+  timeoutMs?: number;
+  /**
+   * Caller cancellation. An aborted call rejects immediately with the
+   * signal's reason (an `AbortError` by default) and is not retried; the
+   * backoff sleep between retries is cut short too.
+   */
+  signal?: AbortSignal;
+  /** Injectable fetch for tests. Default: the global fetch. */
   fetchImpl?: typeof fetch;
 }
 
@@ -124,8 +151,77 @@ function toChatContent(parts: LlmContentPart[]): ChatMessage["content"] {
   );
 }
 
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+/** The signal's reason, or a standard AbortError when the host gave none. */
+function abortReason(signal: AbortSignal): unknown {
+  return signal.reason ?? new DOMException("The LLM call was aborted", "AbortError");
+}
+
+/** Sleep that ends early when `signal` aborts (the caller checks it afterwards). */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function seconds(ms: number): string {
+  return `${ms / 1000}s`;
+}
+
+/**
+ * One attempt's abort signal: fires when the caller's signal fires, or when
+ * the per-attempt timeout elapses — and remembers which. A plain
+ * `AbortController` plus `setTimeout` rather than `AbortSignal.timeout` /
+ * `AbortSignal.any`: one code path in every browser, and one that fake
+ * timers can drive in tests.
+ */
+class AttemptGuard {
+  readonly signal: AbortSignal;
+  timedOut = false;
+  private readonly controller = new AbortController();
+  private readonly timer: ReturnType<typeof setTimeout> | undefined;
+  private readonly onCallerAbort: (() => void) | undefined;
+
+  constructor(
+    private readonly caller: AbortSignal | undefined,
+    timeoutMs: number | undefined,
+  ) {
+    this.signal = this.controller.signal;
+    if (caller) {
+      if (caller.aborted) {
+        this.controller.abort(abortReason(caller));
+      } else {
+        this.onCallerAbort = () => this.controller.abort(abortReason(caller));
+        caller.addEventListener("abort", this.onCallerAbort, { once: true });
+      }
+    }
+    if (timeoutMs !== undefined) {
+      this.timer = setTimeout(() => {
+        this.timedOut = true;
+        this.controller.abort();
+      }, timeoutMs);
+    }
+  }
+
+  dispose(): void {
+    if (this.timer !== undefined) clearTimeout(this.timer);
+    if (this.onCallerAbort) this.caller?.removeEventListener("abort", this.onCallerAbort);
+  }
+}
+
+type AttemptOutcome =
+  | { kind: "ok"; data: unknown }
+  | { kind: "http"; status: number; text: string }
+  | { kind: "network"; error: unknown }
+  | { kind: "timeout" }
+  | { kind: "aborted"; reason: unknown };
 
 export class InternalLlmClient implements LlmClient {
   private readonly url: string;
@@ -135,10 +231,13 @@ export class InternalLlmClient implements LlmClient {
   private readonly jsonMode: boolean;
   private readonly maxNetworkRetries: number;
   private readonly retryDelayMs: number;
+  private readonly retryableStatuses: readonly number[] | undefined;
+  private readonly timeoutMs: number | undefined;
+  private readonly signal: AbortSignal | undefined;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: InternalLlmClientOptions = {}) {
-    const endpoint = (options.endpoint ?? process.env.LLM_ENDPOINT ?? "").trim();
+    const endpoint = (options.endpoint ?? envVar("LLM_ENDPOINT") ?? "").trim();
     if (endpoint === "") {
       throw new Error(
         "no LLM endpoint configured — set the LLM_ENDPOINT environment variable (or pass `endpoint`)",
@@ -149,7 +248,7 @@ export class InternalLlmClient implements LlmClient {
       ? base
       : `${base}/chat/completions`;
 
-    const model = (options.model ?? process.env.LLM_MODEL ?? "").trim();
+    const model = (options.model ?? envVar("LLM_MODEL") ?? "").trim();
     if (model === "") {
       throw new Error(
         "no model configured — set the LLM_MODEL environment variable (or pass `model` / --model)",
@@ -157,23 +256,27 @@ export class InternalLlmClient implements LlmClient {
     }
     this.model = model;
 
-    this.apiKey = options.apiKey ?? process.env.LLM_API_KEY ?? undefined;
+    this.apiKey = options.apiKey ?? envVar("LLM_API_KEY") ?? undefined;
 
-    const envMaxTokens = process.env.LLM_MAX_TOKENS
-      ? Number(process.env.LLM_MAX_TOKENS)
-      : undefined;
+    const rawMaxTokens = envVar("LLM_MAX_TOKENS");
+    const envMaxTokens = rawMaxTokens ? Number(rawMaxTokens) : undefined;
     if (envMaxTokens !== undefined && (!Number.isInteger(envMaxTokens) || envMaxTokens <= 0)) {
-      throw new Error(`LLM_MAX_TOKENS must be a positive integer, got "${process.env.LLM_MAX_TOKENS}"`);
+      throw new Error(`LLM_MAX_TOKENS must be a positive integer, got "${rawMaxTokens}"`);
     }
     this.maxTokens = options.maxTokens ?? envMaxTokens ?? 8192;
 
-    const envJsonMode = (process.env.LLM_JSON_MODE ?? "").toLowerCase();
+    const envJsonMode = (envVar("LLM_JSON_MODE") ?? "").toLowerCase();
     this.jsonMode =
       options.jsonMode ?? !["off", "false", "0", "no"].includes(envJsonMode);
 
     this.maxNetworkRetries = options.maxNetworkRetries ?? 2;
     this.retryDelayMs = options.retryDelayMs ?? 500;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.retryableStatuses = options.retryableStatuses;
+    this.timeoutMs = options.timeoutMs;
+    this.signal = options.signal;
+    // Wrapped, not assigned: a browser's `fetch` must be called with `this`
+    // unset (or the window), never as a method of another object.
+    this.fetchImpl = options.fetchImpl ?? ((input, init) => fetch(input, init));
   }
 
   async structured<T>(options: StructuredCallOptions<T>): Promise<T> {
@@ -235,43 +338,70 @@ export class InternalLlmClient implements LlmClient {
     throw new LlmRepairExhaustedError(options.taskLabel, maxAttempts, lastErrors);
   }
 
-  /** POST with retries for network errors, 429, and 5xx. */
+  private isRetryable(status: number): boolean {
+    return this.retryableStatuses
+      ? this.retryableStatuses.includes(status)
+      : status === 429 || status >= 500;
+  }
+
+  /** POST with retries for network errors and retryable statuses; never for a timeout or an abort. */
   private async post(body: unknown): Promise<unknown> {
+    const payload = JSON.stringify(body);
     for (let attempt = 0; ; attempt++) {
-      let response: Response;
-      try {
-        response = await this.fetchImpl(this.url, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
-          },
-          body: JSON.stringify(body),
-        });
-      } catch (err) {
-        if (attempt < this.maxNetworkRetries) {
-          await sleep(this.retryDelayMs * (attempt + 1));
-          continue;
+      if (this.signal?.aborted) throw abortReason(this.signal);
+
+      const outcome = await this.attempt(payload);
+      switch (outcome.kind) {
+        case "ok":
+          return outcome.data;
+        case "aborted":
+          throw outcome.reason;
+        case "timeout":
+          throw new Error(
+            `could not reach the LLM endpoint at ${this.url}: timed out after ${seconds(this.timeoutMs ?? 0)}`,
+          );
+        case "network": {
+          if (attempt < this.maxNetworkRetries) break;
+          const cause = outcome.error instanceof Error ? outcome.error.message : String(outcome.error);
+          throw new Error(`could not reach the LLM endpoint at ${this.url}: ${cause}`);
         }
-        const cause = err instanceof Error ? err.message : String(err);
-        throw new Error(`could not reach the LLM endpoint at ${this.url}: ${cause}`);
+        case "http":
+          if (this.isRetryable(outcome.status) && attempt < this.maxNetworkRetries) break;
+          throw new LlmHttpError(
+            outcome.status,
+            `the LLM endpoint returned HTTP ${outcome.status}${outcome.text ? `: ${outcome.text.slice(0, 500)}` : ""}`,
+            outcome.text,
+          );
       }
+      await sleep(this.retryDelayMs * (attempt + 1), this.signal);
+    }
+  }
 
-      if (response.ok) return response.json();
-
-      const text = await response.text().catch(() => "");
-      if (
-        (response.status === 429 || response.status >= 500) &&
-        attempt < this.maxNetworkRetries
-      ) {
-        await sleep(this.retryDelayMs * (attempt + 1));
-        continue;
-      }
-      throw new LlmHttpError(
-        response.status,
-        `the LLM endpoint returned HTTP ${response.status}${text ? `: ${text.slice(0, 500)}` : ""}`,
-        text,
-      );
+  /** One HTTP attempt, classified. The body is read inside the guarded window, so a stalled body read times out too. */
+  private async attempt(payload: string): Promise<AttemptOutcome> {
+    const guard = new AttemptGuard(this.signal, this.timeoutMs);
+    let response: Response | undefined;
+    try {
+      response = await this.fetchImpl(this.url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
+        },
+        body: payload,
+        signal: guard.signal,
+      });
+      if (response.ok) return { kind: "ok", data: await response.json() };
+      return { kind: "http", status: response.status, text: await response.text().catch(() => "") };
+    } catch (err) {
+      if (this.signal?.aborted) return { kind: "aborted", reason: abortReason(this.signal) };
+      if (guard.timedOut) return { kind: "timeout" };
+      // The endpoint answered 2xx with a body that is not JSON: not a
+      // transport failure, so not retried — surface it as it is.
+      if (response !== undefined) throw err;
+      return { kind: "network", error: err };
+    } finally {
+      guard.dispose();
     }
   }
 }

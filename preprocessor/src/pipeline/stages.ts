@@ -21,7 +21,7 @@ import {
   validateGraphIntegrity,
   type ExtractionDraft,
 } from "../schema/workflow.js";
-import type { InputPayload } from "../io/input.js";
+import type { InputPayload } from "../io/payload.js";
 
 export const TriageResultSchema = z.object({
   isWorkflow: z.boolean(),

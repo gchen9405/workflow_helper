@@ -20,7 +20,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { loadPreprocessResult } from "workflow-recommender";
-import type { Workflow } from "workflow-preprocessor";
+import type { Workflow } from "workflow-preprocessor/core";
 
 export const RECOMMENDATIONS_SUFFIX = ".recommendations.json";
 

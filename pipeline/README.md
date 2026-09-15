@@ -174,12 +174,14 @@ result.narration.summary;         // { kind: "model" | "deterministic", headline
 | `inputLabel`           | How the appendix refers to the input (a file name, say)                    | `input` |
 | `onProgress`           | `(p) => void`, called at each stage's start and end (with its status)      | —       |
 
-Inputs: `textInput(string)`, `loadInputFromBuffer(buffer, fileName?)`
-(sniffs image vs. text from the bytes — an uploaded file, a pasted
-screenshot), `loadInputFromFile(path)`, `loadInputFromStdin()`,
-`loadInputFromClipboard()`. Everything a host needs — the client factory,
-the inputs, the terminal IO, `.env` loading, the probe, the error classes —
-is re-exported from this package, so embedding means importing one thing.
+Inputs: `textInput(string)`, `inputFromBytes(bytes, fileName?)` (sniffs
+image vs. text from the bytes — an uploaded file, a pasted screenshot; a
+plain `Uint8Array`, so it works in a browser too), `loadInputFromBuffer`
+(the same, for a Node `Buffer`), `loadInputFromFile(path)`,
+`loadInputFromStdin()`, `loadInputFromClipboard()`. Everything a host needs
+— the client factory, the inputs, the terminal IO, `.env` loading, the
+probe, the error classes — is re-exported from this package, so embedding
+means importing one thing.
 
 ## Embedding in a website
 
@@ -298,6 +300,140 @@ in the CLI). Runs are kept in memory; a run nobody answers for ten minutes
 is finished as partial. The server is deliberately minimal — add auth,
 limits and persistence before exposing it.
 
+## Embedding in the browser
+
+The pipeline can also run **inside the browser**, bundled into a site's
+front end, with the site's backend forwarding its LLM calls. That is the
+shape for a host that cannot run Node on the server: the pipeline's only
+runtime needs are `fetch`, `TextDecoder` and `btoa`, and its only secret —
+the LLM key — stays on the server. Nothing about the pipeline changes; the
+LLM client just points at a proxy instead of the endpoint.
+
+```
+Browser                                       Backend                    LLM
+workflow-helper.js ── runPipeline() ──┐
+  askBatch()  → your question UI       │  POST /api/workflow-helper/llm/chat/completions
+  onProgress() → your stage indicator  ├──────────────────────────────▶ proxy ──▶ /chat/completions
+  InternalLlmClient(endpoint: proxy) ──┘  (same-origin cookie)          adds the key, sets the model
+```
+
+### Building the bundle
+
+```sh
+npm run setup && npm run build:browser        # → dist-browser/workflow-helper.js (+ .js.map)
+node scripts/build-browser.mjs --minify        # smaller, for vendoring
+```
+
+`src/browser.ts` is the entry: `runPipeline`, `isChoiceQuestion`,
+`PipelineStageError`, `STAGE_BANNERS`, `InternalLlmClient` and its error
+classes, `textInput`, `inputFromBytes`, `sniffImageMediaType`, and
+`displayToken`. The build is one ES2020 ES module with a banner naming the
+version, commit and date, and two guards: it targets the browser, so
+esbuild fails on any `node:` import (proving nothing Node-only leaked in),
+and it fails if more than one copy of zod got in (each sibling has its own;
+the build resolves them to one). About 700 KiB raw / 120 KiB gzipped
+unminified; the pattern catalog and prompts are the bulk. The siblings
+expose their browser-safe surface as `workflow-preprocessor/core` and
+`workflow-narrator/core`; the recommender is browser-safe as it is.
+
+To vendor it, copy `workflow-helper.js` and `.js.map` into the site's
+source tree with a note of the commit and build command, and import it
+like any module. Upgrading is rebuild, re-copy.
+
+### The client, in the browser
+
+```js
+import { InternalLlmClient, inputFromBytes, runPipeline, textInput } from "./workflow-helper.js";
+
+const controller = new AbortController();               // "Stop" aborts the run
+const llm = new InternalLlmClient({
+  endpoint: "/api/workflow-helper/llm",   // the proxy; the client appends /chat/completions
+  model: "server-managed",                // required by the constructor; the proxy overrides it
+  maxTokens, jsonMode,                    // what the proxy's config endpoint reports
+  maxNetworkRetries: 1,
+  retryableStatuses: [429, 502, 503],     // never retry the proxy's own 504 (its upstream timeout)
+  timeoutMs: 150_000,                     // above the proxy's upstream timeout, so its answer arrives first
+  signal: controller.signal,
+  fetchImpl: (url, init) => fetch(url, { ...init, credentials: "same-origin" }),
+});
+
+const input = file ? inputFromBytes(new Uint8Array(await file.arrayBuffer()), file.name) : textInput(text);
+const result = await runPipeline(llm, input, { io, onProgress, inputLabel: file?.name });
+```
+
+`io.askBatch(questions, round, stage)` renders the batch and returns a
+promise the submit button resolves — the same seam as Pattern B, with the
+transport being the page itself. Recommender questions carry `prompt` (the
+question alone) beside `text` (the terminal form with numbered options), so
+a UI renders `options` as radio buttons labelled with `displayToken(token)`
+and answers with the token. Every request the client sends has exactly
+`model`, `max_tokens`, `messages` and, in JSON mode, `response_format`.
+
+### The proxy contract
+
+One login-protected endpoint, `POST …/chat/completions`, that **rebuilds**
+the upstream request rather than forwarding the client's — the client is
+untrusted, and a logged-in user must not get a general-purpose LLM out of
+it. In order:
+
+1. `application/json` only (415); Content-Length within a cap, checked before
+   reading the body (413).
+2. Rebuild from an allow-list: `messages` — 1 to 12 items, `role` in
+   system/user/assistant, `content` a string or a list of `text` /
+   `image_url` parts whose url matches
+   `^data:image/(png|jpeg|webp|gif);base64,…$` (never http); `max_tokens`
+   clamped to the server's cap; `response_format` only
+   `{"type":"json_object"}` and only when JSON mode is on. Everything else
+   (`model`, `stream`, `tools`, `temperature`, …) is dropped; anything
+   malformed is 400 `{"error":"invalid_request","detail":…}`.
+3. Choose the target on the server: an `image_url` part → the vision
+   model/endpoint/key, otherwise the main one. Set `model`.
+4. Forward with the key and a timeout below the site's other timeouts.
+5. Map the answer. 2xx: pass the body through unchanged. Upstream 401/403:
+   **502 `llm_auth`** — never pass those through, or the browser will take
+   them for its own session ending. 429: 429 with `Retry-After`. Other 4xx:
+   same status, `llm_rejected`. 5xx: same status, `llm_error`. Timeout: 504
+   `llm_timeout`. TLS failure: 502 `llm_tls`. Unreachable: 502
+   `llm_unreachable`.
+6. Log one line — target, bytes, status, latency, `finish_reason`, usage —
+   and never the content or the key.
+
+Beside it, `GET …/config` tells the page `{ enabled, maxTokens, jsonMode,
+maxImageBytes, imageInput }`, and an admin-only `GET …/health` sends one
+trivial completion per configured target.
+
+`examples/browser-proxy.ts` is that contract in ~350 lines of dependency-free
+Node, minus login and rate limiting (it binds to 127.0.0.1); a backend in
+another language must give the same answers for the same requests.
+
+### The demo
+
+```sh
+npm run build:browser
+npm run serve:browser              # http://127.0.0.1:8788, against LLM_ENDPOINT / LLM_MODEL from .env
+npm run serve:browser -- --mock    # no LLM needed: examples/mock-llm.ts answers with canned fixtures
+```
+
+`examples/browser-demo/index.html` is a framework-free page that drives
+the bundle the way a site would: a text box, a file picker, paste and
+drag-and-drop for images, the questions of both stages (free text; radio
+buttons from `prompt` + `displayToken`), a progress list, Stop, and the
+raw Markdown report. It is the smoke test the unit tests cannot be —
+the browser's `fetch` refuses to be called as a method of another object,
+which Node never minds — so run it in the browsers you ship to. With
+`--mock`, words in the text steer the run (`thin` for questions in both
+stages, `reject`, `fail`, `boom`, `slow`, `hang`), and `?text=…&auto=answer`
+runs one from the URL, which is how it is driven headless:
+
+```sh
+node examples/browser-smoke.mjs                      # eight paths through headless Chrome, against the --mock proxy
+node examples/browser-smoke.mjs http://127.0.0.1:8080/api/workflow-helper/    # or against another host of the page
+```
+
+That needs Node ≥ 22 and a Chrome binary (`CHROME=<path>` to override the
+default location). It is not a substitute for opening the page in the
+browsers you ship to, but it catches regressions without clicking.
+
 ## Project layout
 
 ```text
@@ -307,9 +443,15 @@ pipeline/
 │   ├── io/clarification.ts    # stagedIO: stage banners around the siblings' terminal IO
 │   ├── cliMain.ts             # the CLI
 │   ├── cli.ts                 # bootstrap shim ("run npm run setup" instead of ERR_MODULE_NOT_FOUND)
-│   └── index.ts               # public API + re-exports of everything a host needs
-├── examples/server.ts         # reference HTTP embedding (node:http, no dependencies)
-├── test/                      # vitest, entirely offline (FakeLlm)
+│   ├── index.ts               # public API + re-exports of everything a host needs
+│   └── browser.ts             # the browser entry: what the bundle exports
+├── scripts/build-browser.mjs  # esbuild → dist-browser/workflow-helper.js (one zod, no node: imports)
+├── examples/
+│   ├── server.ts              # reference HTTP embedding (node:http, no dependencies)
+│   ├── browser-proxy.ts       # reference LLM proxy + static host for the browser demo
+│   ├── browser-demo/index.html# framework-free page driving the bundle
+│   └── mock-llm.ts            # canned chat-completions upstream, for the demo without an LLM
+├── test/                      # vitest, entirely offline (FakeLlm; the browser path replays its outputs)
 ├── Make improvement reports.command   # double-clickable launcher (macOS)
 ├── Make improvement reports.bat       # double-clickable launcher (Windows)
 ├── inbox/                     # drop folder (gitignored except its README.txt)
@@ -327,4 +469,8 @@ every pipeline status, both clarification loops threaded through the one
 seam (stage naming, answer application, provenance), the silent default,
 the summary switch, the round cap, progress events, stage failures with
 their carried results, image input, and the JSON round trip a web backend
-performs.
+performs. The browser entry is tested by record and replay: a fixture is
+run once through the `FakeLlm`, then again through a real
+`InternalLlmClient` whose `fetch` replays those outputs as chat completions,
+and the two results must match while every request fits the proxy's
+allow-list. A last test builds the bundle for the browser and loads it.

@@ -15,7 +15,7 @@
  * is enforced via `semanticCheck`, so violations go through the injected
  * client's machine repair loop — never to the user.
  */
-import type { LlmClient, WorkflowNode } from "workflow-preprocessor";
+import type { LlmClient, WorkflowNode } from "workflow-preprocessor/core";
 import {
   ProfileDraftSchema,
   checkProfileDraft,

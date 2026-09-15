@@ -8,7 +8,7 @@
  * wrapper announces each stage the first time it asks, and delegates
  * everything else unchanged.
  */
-import type { AskableQuestion, BatchAnswers } from "workflow-preprocessor";
+import type { AskableQuestion, BatchAnswers } from "workflow-preprocessor/core";
 import type { ClarificationStage, PipelineClarificationIO } from "../pipeline/run.js";
 
 /** Any IO whose `askBatch` takes (questions, round) — the preprocessor's shape. */

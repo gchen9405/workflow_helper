@@ -11,6 +11,7 @@ import {
   LlmRepairExhaustedError,
 } from "../src/llm/client.js";
 import { InternalLlmClient, LlmHttpError } from "../src/llm/internalClient.js";
+import { envVar } from "../src/llm/envVar.js";
 
 const AnswerSchema = z.object({ answer: z.string() });
 
@@ -259,5 +260,163 @@ describe("InternalLlmClient — endpoint failure modes", () => {
     await promise.catch((err: LlmHttpError) => {
       expect(err.status).toBe(401);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Browser-host behavior: the bundle runs this client in a browser, against a
+// same-origin proxy. None of this needs a browser to test, but the first
+// case reproduces the one failure Node never shows.
+// ---------------------------------------------------------------------------
+
+/** A fetch that honours `init.signal` and otherwise never settles. */
+function hangingFetch(): { fetchImpl: typeof fetch; calls: number } {
+  const state = { calls: 0 } as { fetchImpl: typeof fetch; calls: number };
+  state.fetchImpl = ((_input: any, init?: any) => {
+    state.calls++;
+    return new Promise<Response>((_resolve, reject) => {
+      const signal: AbortSignal | undefined = init?.signal;
+      if (signal?.aborted) {
+        reject(signal.reason);
+        return;
+      }
+      signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
+  }) as typeof fetch;
+  return state;
+}
+
+const call = (c: InternalLlmClient) =>
+  c.structured({
+    system: "sys",
+    user: [{ type: "text", text: "hello" }],
+    schema: AnswerSchema,
+    taskLabel: "test",
+  });
+
+describe("InternalLlmClient — browser host", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("calls the default fetch unbound (a browser's fetch throws 'Illegal invocation' otherwise)", async () => {
+    let seen: unknown = "unset";
+    vi.stubGlobal("fetch", function (this: unknown) {
+      seen = this;
+      if (this !== undefined && this !== globalThis) {
+        throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+      }
+      return Promise.resolve(jsonResponse(completion('{"answer":"hi"}')));
+    });
+    const c = new InternalLlmClient({
+      endpoint: "https://llm.internal.example/v1",
+      model: "m",
+      retryDelayMs: 1,
+    });
+    await expect(call(c)).resolves.toEqual({ answer: "hi" });
+    expect(seen === undefined || seen === globalThis).toBe(true);
+  });
+
+  it("times out a single attempt and does not retry it", async () => {
+    vi.useFakeTimers();
+    const hang = hangingFetch();
+    const promise = call(client(hang.fetchImpl, { timeoutMs: 1000, maxNetworkRetries: 2 }));
+    const outcome = expect(promise).rejects.toThrow(
+      /could not reach the LLM endpoint at .*: timed out after 1s/,
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    await outcome;
+    expect(hang.calls).toBe(1);
+  });
+
+  it("rejects at once with the abort reason when the caller's signal fires, with no retry", async () => {
+    const hang = hangingFetch();
+    const controller = new AbortController();
+    const promise = call(client(hang.fetchImpl, { signal: controller.signal, maxNetworkRetries: 2 }));
+    controller.abort();
+    await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+    expect(hang.calls).toBe(1);
+  });
+
+  it("never starts a request on a signal that is already aborted", async () => {
+    const hang = hangingFetch();
+    const controller = new AbortController();
+    controller.abort(new Error("run cancelled"));
+    await expect(call(client(hang.fetchImpl, { signal: controller.signal }))).rejects.toThrow(
+      "run cancelled",
+    );
+    expect(hang.calls).toBe(0);
+  });
+
+  it("cuts the backoff sleep short when aborted between retries", async () => {
+    const controller = new AbortController();
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls++;
+      throw new TypeError("network down");
+    }) as typeof fetch;
+    const promise = call(
+      client(fetchImpl, { signal: controller.signal, retryDelayMs: 60_000, maxNetworkRetries: 2 }),
+    );
+    // The first attempt has failed and the client is sleeping before retry 1.
+    await new Promise((r) => setTimeout(r, 5));
+    controller.abort();
+    await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+    expect(calls).toBe(1);
+  });
+
+  it("retryableStatuses narrows what is retried: 504 surfaces at once, 503 is retried", async () => {
+    const over = { retryableStatuses: [429, 502, 503] as const };
+
+    const gateway = fetchStub([jsonResponse({ error: "upstream timeout" }, 504)]);
+    const failed = call(client(gateway.fetchImpl, over));
+    await expect(failed).rejects.toBeInstanceOf(LlmHttpError);
+    await failed.catch((err: LlmHttpError) => expect(err.status).toBe(504));
+    expect(gateway.calls).toHaveLength(1);
+
+    const busy = fetchStub([
+      jsonResponse({ error: "busy" }, 503),
+      jsonResponse(completion('{"answer":"recovered"}')),
+    ]);
+    await expect(call(client(busy.fetchImpl, over))).resolves.toEqual({ answer: "recovered" });
+    expect(busy.calls).toHaveLength(2);
+  });
+
+  it("keeps the default retry rule (429 and every 5xx) when retryableStatuses is unset", async () => {
+    const gateway = fetchStub([
+      jsonResponse({ error: "upstream timeout" }, 504),
+      jsonResponse(completion('{"answer":"recovered"}')),
+    ]);
+    await expect(call(client(gateway.fetchImpl))).resolves.toEqual({ answer: "recovered" });
+    expect(gateway.calls).toHaveLength(2);
+  });
+
+  it("passes an abort signal to fetch on every attempt", async () => {
+    const seen: unknown[] = [];
+    const fetchImpl = (async (_input: any, init?: any) => {
+      seen.push(init?.signal);
+      return jsonResponse(completion('{"answer":"hi"}'));
+    }) as typeof fetch;
+    await call(client(fetchImpl));
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
+  });
+});
+
+describe("envVar", () => {
+  it("reads process.env through the host object, and answers undefined without one", () => {
+    expect(envVar("LLM_MODEL", { process: { env: { LLM_MODEL: "m1" } } })).toBe("m1");
+    expect(envVar("LLM_MODEL", { process: { env: {} } })).toBeUndefined();
+    expect(envVar("LLM_MODEL", { process: {} })).toBeUndefined();
+    expect(envVar("LLM_MODEL", {})).toBeUndefined();
+    expect(envVar("LLM_MODEL", undefined as unknown as object)).toBeUndefined();
+  });
+
+  it("defaults to the real global, so the CLI's environment still applies", () => {
+    vi.stubEnv("LLM_MODEL", "from-env");
+    expect(envVar("LLM_MODEL")).toBe("from-env");
+    expect(new InternalLlmClient({ endpoint: "https://x/v1", fetchImpl: fetchStub([]).fetchImpl }))
+      .toBeInstanceOf(InternalLlmClient);
   });
 });

@@ -33,7 +33,7 @@ import {
   LlmRepairExhaustedError,
   type LlmClient,
 } from "../llm/client.js";
-import type { InputPayload } from "../io/input.js";
+import type { InputPayload } from "../io/payload.js";
 import { stampOriginalProvenance, type Workflow } from "../schema/workflow.js";
 import type { Patch } from "../schema/patches.js";
 import { detectGaps, type Gap } from "./gaps.js";

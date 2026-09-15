@@ -19,92 +19,13 @@
  * );
  * // result.status is "validated" | "partial" | "rejected"
  * ```
+ *
+ * Everything browser-safe lives in `./core.ts` (also importable as
+ * `workflow-preprocessor/core`); this module adds the Node-only pieces.
  */
+export * from "./core.js";
 
-// Schema
-export {
-  NODE_TYPES,
-  NodeTypeSchema,
-  WorkflowNodeSchema,
-  WorkflowEdgeSchema,
-  ExtractionDraftSchema,
-  provenancePath,
-  stampOriginalProvenance,
-  validateGraphIntegrity,
-  type NodeType,
-  type WorkflowNode,
-  type WorkflowEdge,
-  type ExtractionDraft,
-  type Provenance,
-  type Workflow,
-  type WorkflowGraph,
-} from "./schema/workflow.js";
-
-export {
-  PatchSchema,
-  AnswerApplicationSchema,
-  applyPatches,
-  type Patch,
-  type AnswerApplication,
-  type PatchApplication,
-} from "./schema/patches.js";
-
-// Deterministic analyses
-export { detectGaps, gapId, type Gap } from "./pipeline/gaps.js";
-export {
-  buildQuestions,
-  DEFAULT_MAX_QUESTIONS_PER_ROUND,
-  type Question,
-} from "./pipeline/questions.js";
-
-// LLM stages
-export {
-  triageInput,
-  normalizeToIntermediate,
-  extractDraft,
-  TriageResultSchema,
-  type TriageResult,
-} from "./pipeline/stages.js";
-export {
-  applyAnswersWithLlm,
-  type AnsweredQuestion,
-  type ClarificationOutcome,
-} from "./pipeline/clarify.js";
-
-// Orchestration
-export {
-  runPreprocessor,
-  DEFAULT_MAX_ROUNDS,
-  type PreprocessorState,
-  type PreprocessResult,
-  type ClarificationIO,
-  type BatchAnswers,
-  type QARound,
-  type RunOptions,
-} from "./pipeline/run.js";
-
-// LLM client
-export {
-  LlmRefusalError,
-  LlmRepairExhaustedError,
-  type LlmClient,
-  type LlmContentPart,
-  type StructuredCallOptions,
-} from "./llm/client.js";
-export {
-  InternalLlmClient,
-  LlmHttpError,
-  type InternalLlmClientOptions,
-} from "./llm/internalClient.js";
-export {
-  RoutingLlmClient,
-  createLlmClient,
-  type RoutingClients,
-  type CreateLlmClientOptions,
-} from "./llm/routingClient.js";
-export { INTERMEDIATE_FORMAT } from "./llm/prompts.js";
-
-// Input handling
+// Input loading from files, folders, stdin and the clipboard (Node-only)
 export {
   discoverInputs,
   isDirectory,
@@ -115,11 +36,7 @@ export {
   normalizeInputPath,
   readStream,
   resolveInputPath,
-  sniffImageMediaType,
-  textInput,
   type DiscoverOptions,
-  type InputPayload,
-  type ImageMediaType,
   type LoadFileOptions,
 } from "./io/input.js";
 
@@ -130,14 +47,9 @@ export {
   type ClipboardRunner,
 } from "./io/clipboard.js";
 
-// Interactive clarification IO (terminal). Question type is minimal
-// ({ id, text }) so sibling components can drive it with their own questions.
-export {
-  ReadlineClarificationIO,
-  openClarificationIO,
-  silentIO,
-  type AskableQuestion,
-} from "./io/clarification.js";
+// Interactive clarification IO (terminal). `silentIO` and `AskableQuestion`
+// come from ./core.
+export { ReadlineClarificationIO, openClarificationIO } from "./io/clarification.js";
 
 // Configuration
 export {
@@ -146,4 +58,3 @@ export {
   parseEnvFile,
   type EnvFileLoad,
 } from "./io/env.js";
-export { probeLlm, PIXEL_PNG_BASE64, type ProbeOutcome } from "./llm/probe.js";

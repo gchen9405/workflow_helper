@@ -11,6 +11,9 @@
  * Modality is decided by CONTENT, not by filename: the extension is a hint,
  * magic bytes are the authority. A screenshot saved without an extension, or
  * an image arriving over a pipe with no name at all, is still an image.
+ *
+ * This module is Node-only (files, folders, stdin, the clipboard). The
+ * payload type and the pure helpers it builds on live in `payload.ts`.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -18,11 +21,24 @@ import { extname, basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readClipboard, type ClipboardDeps } from "./clipboard.js";
 
-export type ImageMediaType = "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+import {
+  inputFromBytes,
+  sniffImageMediaType,
+  textInput,
+  type ImageMediaType,
+  type InputPayload,
+} from "./payload.js";
 
-export type InputPayload =
-  | { kind: "text"; text: string }
-  | { kind: "image"; mediaType: ImageMediaType; base64: string; fileName?: string };
+// The payload type and the pure helpers (text, sniffing, bytes → payload)
+// live in `payload.ts` so the browser bundle can use them; they are
+// re-exported here so Node callers see one module, as before.
+export {
+  inputFromBytes,
+  sniffImageMediaType,
+  textInput,
+  type ImageMediaType,
+  type InputPayload,
+} from "./payload.js";
 
 const IMAGE_EXTENSIONS: Record<string, ImageMediaType> = {
   ".png": "image/png",
@@ -34,49 +50,6 @@ const IMAGE_EXTENSIONS: Record<string, ImageMediaType> = {
 
 /** Text extensions picked up when a whole folder is given as the input. */
 const TEXT_EXTENSIONS = new Set([".txt", ".md", ".markdown", ".text", ".rst"]);
-
-/** Wrap raw text as an input payload. Rejects empty input up front. */
-export function textInput(text: string): InputPayload {
-  const trimmed = text.trim();
-  if (trimmed === "") {
-    throw new Error("input text is empty");
-  }
-  return { kind: "text", text: trimmed };
-}
-
-/**
- * Identify an image from its leading bytes. Signatures:
- * PNG `89 50 4E 47 0D 0A 1A 0A`, JPEG `FF D8 FF`, GIF `GIF87a`/`GIF89a`,
- * WebP `RIFF….WEBP`.
- */
-export function sniffImageMediaType(buffer: Buffer): ImageMediaType | undefined {
-  if (
-    buffer.length >= 8 &&
-    buffer[0] === 0x89 &&
-    buffer.subarray(1, 4).toString("latin1") === "PNG" &&
-    buffer[4] === 0x0d &&
-    buffer[5] === 0x0a &&
-    buffer[6] === 0x1a &&
-    buffer[7] === 0x0a
-  ) {
-    return "image/png";
-  }
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return "image/jpeg";
-  }
-  if (buffer.length >= 6) {
-    const head = buffer.subarray(0, 6).toString("latin1");
-    if (head === "GIF87a" || head === "GIF89a") return "image/gif";
-  }
-  if (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString("latin1") === "RIFF" &&
-    buffer.subarray(8, 12).toString("latin1") === "WEBP"
-  ) {
-    return "image/webp";
-  }
-  return undefined;
-}
 
 /**
  * Clean up a path as a human is likely to have produced it: dragged from
@@ -128,11 +101,7 @@ export function normalizeInputPath(
  * match nothing the bytes are read as UTF-8 text.
  */
 export function loadInputFromBuffer(buffer: Buffer, fileName?: string): InputPayload {
-  const mediaType = sniffImageMediaType(buffer);
-  if (mediaType) {
-    return { kind: "image", mediaType, base64: buffer.toString("base64"), fileName };
-  }
-  return textInput(buffer.toString("utf8"));
+  return inputFromBytes(buffer, fileName);
 }
 
 export interface LoadFileOptions {

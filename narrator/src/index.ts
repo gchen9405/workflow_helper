@@ -14,24 +14,13 @@
  * );
  * // narration.status is "complete" | "fallback" | "notice"; narration.report is Markdown
  * ```
+ *
+ * Everything browser-safe lives in `./core.ts` (also importable as
+ * `workflow-narrator/core`); this module adds the Node-only file resolution.
  */
+export * from "./core.js";
 
-// Input boundary
-export {
-  loadRecommendation,
-  hasBody,
-  TargetSchema,
-  type LoadedRecommendation,
-  type NarratableRecommendation,
-  type LoadedBody,
-  type LoadedOpportunity,
-  type LoadedProfile,
-  type LoadedMotif,
-  type LoadedTarget,
-  type LoadedVariant,
-  type LoadedExcluded,
-  type LoadedQuestion,
-} from "./schema/input.js";
+// Finding the sibling preprocessor result on disk (Node-only)
 export {
   resolveWorkflow,
   siblingWorkflowPath,
@@ -40,42 +29,3 @@ export {
   type ResolvedWorkflow,
   type ResolveWorkflowOptions,
 } from "./io/workflow.js";
-
-// Result
-export type {
-  Narration,
-  NarrationSource,
-  SummaryBlock,
-  SummaryContent,
-} from "./schema/narration.js";
-
-// Deterministic rendering
-export {
-  renderBody,
-  renderTitle,
-  assembleReport,
-  flowOrder,
-  detailCount,
-  stepRef,
-  targetRef,
-  type ReportContext,
-} from "./render/report.js";
-export { deterministicSummary, renderSummarySection } from "./render/summary.js";
-export * from "./render/phrases.js";
-
-// LLM stage
-export {
-  summarize,
-  checkSummary,
-  collectFacts,
-  SummarySchema,
-  OVERVIEW_MAX_WORDS,
-  HEADLINE_MAX_WORDS,
-  type ModelSummary,
-  type SummaryFacts,
-  type SummaryContext,
-} from "./llm/summary.js";
-export { SUMMARY_SYSTEM } from "./llm/prompts.js";
-
-// Orchestration
-export { narrate, DEFAULT_TOP, type NarratorRunOptions } from "./pipeline/run.js";

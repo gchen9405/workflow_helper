@@ -41,7 +41,7 @@
  *
  * `unsuitable` results render a short notice with next steps instead.
  */
-import type { Workflow, WorkflowNode } from "workflow-preprocessor";
+import type { Workflow, WorkflowNode } from "workflow-preprocessor/core";
 import { displayToken, profilePath, type PatternDef, type PatternVariant } from "workflow-recommender";
 import type {
   LoadedMotif,

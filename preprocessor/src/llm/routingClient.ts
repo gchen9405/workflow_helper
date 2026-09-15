@@ -26,6 +26,7 @@ import {
   InternalLlmClient,
   type InternalLlmClientOptions,
 } from "./internalClient.js";
+import { envVar } from "./envVar.js";
 
 export interface RoutingClients {
   /** Handles every call whose content is text-only. */
@@ -64,7 +65,7 @@ export interface CreateLlmClientOptions {
 
 /** Explicit option wins over the env var; blank values count as unset. */
 function resolve(value: string | undefined, envName: string): string | undefined {
-  const resolved = (value ?? process.env[envName] ?? "").trim();
+  const resolved = (value ?? envVar(envName) ?? "").trim();
   return resolved === "" ? undefined : resolved;
 }
 

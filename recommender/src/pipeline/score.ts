@@ -35,7 +35,7 @@
  * best-variant effort, then (patternId, targetId) lexicographically, so
  * output order is stable across runs.
  */
-import type { WorkflowGraph } from "workflow-preprocessor";
+import type { WorkflowGraph } from "workflow-preprocessor/core";
 import { EFFORT_FACTOR, type Effort } from "../schema/catalog.js";
 import {
   profilePath,

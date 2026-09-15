@@ -14,12 +14,12 @@ import { createReadStream, openSync } from "node:fs";
 import process from "node:process";
 import * as readline from "node:readline/promises";
 import type { BatchAnswers } from "../pipeline/run.js";
+import type { AskableQuestion } from "./silent.js";
 
-/** The two fields a question must expose to be asked interactively. */
-export interface AskableQuestion {
-  id: string;
-  text: string;
-}
+// The question shape and the non-interactive IO live in `silent.ts` (no
+// Node imports, so the browser bundle can use them); re-exported here so
+// Node callers see one module, as before.
+export { silentIO, type AskableQuestion } from "./silent.js";
 
 /** Interactive clarification over a readable TTY. */
 export class ReadlineClarificationIO {
@@ -45,16 +45,6 @@ export class ReadlineClarificationIO {
     return { stopped: false, answers };
   }
 }
-
-/** Non-interactive mode: never ask; the pipeline finishes as partial if gaps remain. */
-export const silentIO = {
-  async askBatch(
-    _questions: readonly AskableQuestion[],
-    _round: number,
-  ): Promise<BatchAnswers> {
-    return { stopped: true, answers: [] };
-  },
-};
 
 /**
  * The console's input device, for reading prompts when stdin is a pipe.

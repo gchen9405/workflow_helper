@@ -24,7 +24,7 @@
  * pattern ids are stable — the keying surface the future lessons-learned
  * component (`adviceRefs`) builds on.
  */
-import type { Question } from "workflow-preprocessor";
+import type { Question } from "workflow-preprocessor/core";
 import type { NodeProfile, RecommenderProvenance } from "./profile.js";
 import type { Deployment, Effort } from "./catalog.js";
 import type { Sensitivity } from "./taxonomy.js";

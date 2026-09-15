@@ -51,7 +51,7 @@ import {
   type LlmClient,
   type PreprocessResult,
   type Question,
-} from "workflow-preprocessor";
+} from "workflow-preprocessor/core";
 import {
   runRecommender,
   type PatternDef,
@@ -59,7 +59,7 @@ import {
   type RecommendationResult,
   type RecommenderClarificationIO,
 } from "workflow-recommender";
-import { narrate, type Narration } from "workflow-narrator";
+import { narrate, type Narration } from "workflow-narrator/core";
 
 /** The three stages, in the order they run. */
 export type PipelineStage = "preprocess" | "recommend" | "narrate";

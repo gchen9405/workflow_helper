@@ -25,7 +25,7 @@
  * requiring named actors would blind the detector on exactly the text
  * inputs that omit them.
  */
-import type { WorkflowEdge, WorkflowGraph } from "workflow-preprocessor";
+import type { WorkflowEdge, WorkflowGraph } from "workflow-preprocessor/core";
 import type { NodeProfile } from "../schema/profile.js";
 import type { TaskClass } from "../schema/taxonomy.js";
 import { motifId, type Motif, type MotifKind } from "../schema/motif.js";

@@ -48,6 +48,7 @@ export {
   LlmRefusalError,
   LlmRepairExhaustedError,
   textInput,
+  inputFromBytes,
   loadInputFromBuffer,
   loadInputFromFile,
   loadInputFromStdin,

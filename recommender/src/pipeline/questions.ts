@@ -21,7 +21,7 @@
  * questions (the caller records that it was asked). This keeps the worst
  * case of N nodes × 6 attributes from burying the user.
  */
-import type { WorkflowGraph } from "workflow-preprocessor";
+import type { WorkflowGraph } from "workflow-preprocessor/core";
 import {
   ACTOR_KINDS,
   DURATIONS,
@@ -46,8 +46,14 @@ export interface ProfileQuestion {
   /** Stable id — the gap id, or WORKFLOW_SENSITIVITY_QUESTION_ID. */
   id: string;
   subject: QuestionSubject;
-  /** Shown to the user; includes the numbered options. */
+  /** Shown to the user in a terminal; includes the numbered options. */
   text: string;
+  /**
+   * The question alone, without the options line — for a UI that renders
+   * `options` as its own control (radio buttons, a select) and labels each
+   * token with `displayToken`. `text` is always `prompt` plus that line.
+   */
+  prompt: string;
   /** The enum tokens the numbered options map to, in display order. */
   options: readonly string[];
 }
@@ -126,20 +132,19 @@ function describeNode(wf: WorkflowGraph, nodeId: string): string {
   return `the step "${nodeId}"`;
 }
 
-function questionText(wf: WorkflowGraph, subject: QuestionSubject): string {
-  const options = renderOptions(questionOptions(subject));
+/** The question alone — what is being asked, with no options attached. */
+function questionStem(wf: WorkflowGraph, subject: QuestionSubject): string {
   if (subject.kind === "workflow_data_sensitivity") {
     return (
       "Overall, how sensitive is the data flowing through this workflow? " +
-      "(applies to every step not answered individually)\n   " +
-      options
+      "(applies to every step not answered individually)"
     );
   }
   if (subject.kind === "missing_task_class") {
-    return `What kind of work is ${describeNode(wf, subject.nodeId)}?\n   ${options}`;
+    return `What kind of work is ${describeNode(wf, subject.nodeId)}?`;
   }
   const node = describeNode(wf, subject.nodeId);
-  const stem = {
+  return {
     frequency: `How often is ${node} performed?`,
     duration: `How long does one run of ${node} typically take?`,
     structure: `Could the way ${node} is done be written down as explicit rules?`,
@@ -147,7 +152,11 @@ function questionText(wf: WorkflowGraph, subject: QuestionSubject): string {
     dataSensitivity: `How sensitive is the data ${node} touches?`,
     actorKind: `Who performs ${node} today?`,
   }[subject.attribute];
-  return `${stem}\n   ${options}`;
+}
+
+/** The terminal form: the stem, then the numbered options on an indented line. */
+function questionText(wf: WorkflowGraph, subject: QuestionSubject): string {
+  return `${questionStem(wf, subject)}\n   ${renderOptions(questionOptions(subject))}`;
 }
 
 export interface BuildQuestionOptions {
@@ -207,6 +216,7 @@ export function buildProfileQuestions(
           : profileGapId(subject),
       subject,
       text: questionText(wf, subject),
+      prompt: questionStem(wf, subject),
       options: questionOptions(subject),
     }));
 }

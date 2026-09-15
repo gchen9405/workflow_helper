@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { detectProfileGaps } from "../src/pipeline/gaps.js";
 import {
   buildProfileQuestions,
+  displayToken,
   WORKFLOW_SENSITIVITY_QUESTION_ID,
 } from "../src/pipeline/questions.js";
 import { node, profile, workflow } from "./helpers.js";
@@ -84,5 +85,38 @@ describe("buildProfileQuestions", () => {
     expect(question.text).toContain('"Reconcile invoices" (a)');
     expect(question.text).toContain("1) ad hoc");
     expect(question.options).toEqual(["ad_hoc", "monthly", "weekly", "daily", "many_per_day"]);
+  });
+
+  it("prompt is the question without the options line, for UIs that render the options themselves", () => {
+    const gaps = detectProfileGaps([profile("a", { frequency: null })]);
+    const [question] = buildProfileQuestions(wf, gaps);
+    expect(question.prompt).toBe('How often is "Reconcile invoices" (a) performed?');
+    expect(question.prompt).not.toContain("1)");
+    expect(question.text).toBe(
+      `${question.prompt}\n   1) ad hoc  2) monthly  3) weekly  4) daily  5) many times a day`,
+    );
+  });
+
+  it("text is always prompt plus the rendered options — per-attribute, task class, and workflow-level alike", () => {
+    const gaps = detectProfileGaps([
+      profile("a", {
+        taskClass: null,
+        frequency: null,
+        duration: null,
+        structure: null,
+        judgment: null,
+        dataSensitivity: null,
+        actorKind: null,
+      }),
+      profile("b", { dataSensitivity: null }),
+    ]);
+    const questions = buildProfileQuestions(wf, gaps, 20);
+    expect(questions[0].id).toBe(WORKFLOW_SENSITIVITY_QUESTION_ID);
+    expect(questions).toHaveLength(7);
+    for (const q of questions) {
+      const options = q.options.map((t, i) => `${i + 1}) ${displayToken(t)}`).join("  ");
+      expect(q.text).toBe(`${q.prompt}\n   ${options}`);
+      expect(q.prompt.endsWith("?") || q.prompt.endsWith(")")).toBe(true);
+    }
   });
 });

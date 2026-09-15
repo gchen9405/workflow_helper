@@ -9,7 +9,7 @@ and CLI:
 
 | Folder           | Does                                                                          | In → out |
 |------------------|-------------------------------------------------------------------------------|----------|
-| `pipeline/`      | **Start here.** The end-to-end entry point: runs the three stages in one call and returns the report (plus every stage's result). Designed for embedding in a website. | image / text → report |
+| `pipeline/`      | **Start here.** The end-to-end entry point: runs the three stages in one call and returns the report (plus every stage's result). Designed for embedding in a website — as a Node library, or as a browser bundle (`npm run build:browser`) behind a small LLM proxy. | image / text → report |
 | `preprocessor/`  | Extracts a validated workflow graph, asking clarifying questions when the input is thin. | image / text → schema JSON |
 | `recommender/`   | Matches the schema against a pattern catalog; scores and ranks opportunities.  | schema → recommendations JSON |
 | `narrator/`      | Renders the recommendations as a layered Markdown report with a model-written summary. | recommendations → report |

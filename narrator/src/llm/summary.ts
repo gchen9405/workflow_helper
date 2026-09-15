@@ -12,7 +12,7 @@
  * deterministic summary; the model can only ever ADD to the report.
  */
 import { z } from "zod";
-import type { LlmClient } from "workflow-preprocessor";
+import type { LlmClient } from "workflow-preprocessor/core";
 import type { NarratableRecommendation } from "../schema/input.js";
 import { wordCount } from "../render/phrases.js";
 import { SUMMARY_SYSTEM } from "./prompts.js";

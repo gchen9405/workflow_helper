@@ -40,7 +40,7 @@ import {
   type BatchAnswers,
   type LlmClient,
   type Workflow,
-} from "workflow-preprocessor";
+} from "workflow-preprocessor/core";
 import { loadPreprocessResult } from "../schema/input.js";
 import {
   stampProfileProvenance,

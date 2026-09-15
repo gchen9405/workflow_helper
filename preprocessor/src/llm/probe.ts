@@ -15,7 +15,7 @@
 import { z } from "zod";
 import { LlmHttpError } from "./internalClient.js";
 import { LlmRefusalError, LlmRepairExhaustedError, type LlmClient } from "./client.js";
-import type { ImageMediaType } from "../io/input.js";
+import type { ImageMediaType } from "../io/payload.js";
 
 /** A valid 1x1 PNG — the smallest thing that forces the vision route. */
 export const PIXEL_PNG_BASE64 =

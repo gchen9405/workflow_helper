@@ -21,7 +21,7 @@ import {
   type Workflow,
   type WorkflowEdge,
   type WorkflowNode,
-} from "workflow-preprocessor";
+} from "workflow-preprocessor/core";
 
 /** An inherited preprocessor question, kept structurally minimal. */
 export interface InheritedQuestion {
