@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflow helper</title>
+<style>
+  :root { color-scheme: light dark; font: 15px/1.45 system-ui, sans-serif; }
+  body { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  h1 small { font-weight: normal; opacity: .6; font-size: .9rem; margin-left: .5rem; }
+  h2 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
+  section { border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+  textarea { width: 100%; box-sizing: border-box; font: inherit; padding: .5rem; resize: vertical; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .5rem; }
+  button { font: inherit; padding: .4rem .9rem; }
+  button.primary { font-weight: 600; }
+  .hint, .muted { opacity: .65; font-size: .9rem; }
+  #attachment img { max-height: 5rem; vertical-align: middle; margin-left: .5rem; border: 1px solid #8884; }
+  ol#progress-lines { margin: 0; padding-left: 1.4rem; }
+  fieldset { border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 6px; margin: 0 0 .75rem; }
+  legend { font-weight: 600; }
+  label.option { display: block; }
+  input[type=text] { width: 100%; box-sizing: border-box; font: inherit; padding: .35rem; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: .85rem; }
+  #error { border-color: #c33; }
+  .drop-overlay { position: fixed; inset: 0; background: color-mix(in srgb, currentColor 8%, transparent); display: none; align-items: center; justify-content: center; font-size: 1.4rem; pointer-events: none; }
+  body.dragging .drop-overlay { display: flex; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<h1>Workflow helper <small>describe a process or drop a flowchart, get improvement ideas</small></h1>
+<p id="config-line" class="muted">Loading configuration…</p>
+
+<section id="composer">
+  <textarea id="text" rows="6" placeholder="Describe a workflow step by step — or drop or paste a flowchart image anywhere on this page."></textarea>
+  <div class="row">
+    <input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/gif,.txt,.md">
+    <span id="attachment"></span>
+  </div>
+  <div class="row">
+    <button id="analyze" class="primary">Analyze</button>
+    <button id="stop" disabled>Stop</button>
+    <button id="reset">Start over</button>
+    <span id="elapsed" class="muted"></span>
+  </div>
+  <p class="hint">Descriptions and images you submit are sent to the internal LLM service for analysis. Only submit information that service is approved to receive.</p>
+</section>
+
+<section id="progress" hidden>
+  <h2>Progress</h2>
+  <ol id="progress-lines"></ol>
+</section>
+
+<section id="questions" hidden>
+  <h2 id="questions-title"></h2>
+  <p id="questions-banner" class="muted"></p>
+  <form id="questions-form"></form>
+  <div class="row">
+    <button id="continue" class="primary">Continue</button>
+    <button id="skip">Skip these</button>
+    <button id="finish">Finish with what you have</button>
+  </div>
+</section>
+
+<section id="error" hidden>
+  <h2>Failed</h2>
+  <p id="error-text"></p>
+  <p id="error-stage" class="muted"></p>
+  <button id="retry">Try again</button>
+</section>
+
+<section id="report" hidden>
+  <h2>Report <span id="report-status" class="muted"></span></h2>
+  <div class="row">
+    <button id="copy">Copy as Markdown</button>
+    <button id="show-json">Show result JSON</button>
+  </div>
+  <pre id="report-text"></pre>
+  <pre id="result-json" hidden></pre>
+</section>
+
+<div class="drop-overlay">Drop the file to attach it</div>
+
+<script type="module">
+import {
+  InternalLlmClient,
+  LlmHttpError,
+  PipelineStageError,
+  displayToken,
+  inputFromBytes,
+  isChoiceQuestion,
+  runPipeline,
+  textInput,
+} from "./workflow-helper.js";
+
+const $ = (id) => document.getElementById(id);
+const BANNERS = {
+  preprocess: "A few details the description left out. Answer in your own words, or leave blank to skip.",
+  recommend: "About each step: pick the closest option, or skip if unsure.",
+};
+const STAGE_LABEL = { preprocess: "Understanding the workflow", recommend: "Finding opportunities", narrate: "Writing the report" };
+const MAX_TEXT_BYTES = 50_000;
+
+let config = { enabled: true, maxTokens: 8192, jsonMode: true, maxImageBytes: 5_000_000, imageInput: true };
+let attached = null;        // InputPayload from a file / paste / drop
+let attachedLabel = "";
+let controller = null;      // AbortController of the run in progress
+let pending = null;         // { resolve, questions } while a batch waits for answers
+let lastInput = null;       // for "Try again"
+let lastResult = null;
+let timer = null;
+
+// ---- configuration ---------------------------------------------------------
+try {
+  const res = await fetch("/api/workflow-helper/config", { credentials: "same-origin" });
+  // A bare proxy may answer only { enabled, imageInput }; keep the defaults for the rest.
+  config = { ...config, ...(await res.json()) };
+  $("config-line").textContent = config.enabled
+    ? `Proxy: maxTokens ${config.maxTokens}, jsonMode ${config.jsonMode}, images ${config.imageInput ? `up to ${(config.maxImageBytes / 1e6).toFixed(1)} MB` : "off"}.`
+    : "The workflow helper is turned off.";
+  if (!config.imageInput) $("file").accept = ".txt,.md";
+} catch (err) {
+  $("config-line").textContent = `Could not load the proxy configuration: ${err.message}`;
+}
+
+// ---- input sources: file picker, paste, drag-and-drop ----------------------
+async function attachFile(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let payload;
+  try {
+    payload = inputFromBytes(bytes, file.name);
+  } catch (err) {
+    return showError(`Could not read ${file.name}: ${err.message}`);
+  }
+  if (payload.kind === "image") {
+    if (!config.imageInput) return showError("Image input is turned off on this proxy.");
+    if (bytes.length > config.maxImageBytes) return showError(`That image is ${(bytes.length / 1e6).toFixed(1)} MB; the limit is ${(config.maxImageBytes / 1e6).toFixed(1)} MB.`);
+  } else if (bytes.length > MAX_TEXT_BYTES) {
+    return showError("That text is over 50 KB. Trim it down.");
+  }
+  attached = payload;
+  attachedLabel = file.name || (payload.kind === "image" ? "pasted image" : "pasted text");
+  const span = $("attachment");
+  span.textContent = `Attached: ${attachedLabel} (${payload.kind}) `;
+  if (payload.kind === "image") {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    img.alt = attachedLabel;
+    span.appendChild(img);
+  }
+  hide("error");
+}
+
+$("file").addEventListener("change", (e) => { if (e.target.files[0]) attachFile(e.target.files[0]); });
+document.addEventListener("paste", (e) => {
+  const file = [...(e.clipboardData?.files ?? [])][0];
+  if (file) { e.preventDefault(); attachFile(file); }
+});
+let dragDepth = 0;
+document.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; document.body.classList.add("dragging"); });
+document.addEventListener("dragover", (e) => { e.preventDefault(); });
+document.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove("dragging"); } });
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove("dragging");
+  const file = e.dataTransfer?.files?.[0];
+  if (file) attachFile(file);
+});
+
+// ---- the run ---------------------------------------------------------------
+function createClient(signal) {
+  return new InternalLlmClient({
+    endpoint: "/api/workflow-helper/llm",   // the proxy appends nothing; the client adds /chat/completions
+    model: "server-managed",                // required by the constructor; the proxy sets the real one
+    maxTokens: config.maxTokens,
+    jsonMode: config.jsonMode,
+    maxNetworkRetries: 1,
+    retryableStatuses: [429, 502, 503],     // never retry the proxy's own 504
+    timeoutMs: 150_000,                     // above the proxy's upstream timeout, so its 504 arrives first
+    signal,
+    fetchImpl: (url, init) => fetch(url, { ...init, credentials: "same-origin" }),
+  });
+}
+
+const io = {
+  askBatch(questions, round, stage) {
+    return new Promise((resolve) => {
+      pending = { resolve, questions };
+      renderQuestions(questions, round, stage);
+    });
+  },
+};
+
+function onProgress(p) {
+  if (p.phase === "start") addProgress(`${STAGE_LABEL[p.stage]}…`);
+  else addProgress(`${STAGE_LABEL[p.stage]}: ${p.status}`);
+}
+
+async function start(input, label) {
+  resetOutput();
+  lastInput = { input, label };
+  controller = new AbortController();
+  $("analyze").disabled = true;
+  $("stop").disabled = false;
+  show("progress");
+  const startedAt = Date.now();
+  timer = setInterval(() => { $("elapsed").textContent = `${Math.round((Date.now() - startedAt) / 1000)} s — each step can take a minute or two`; }, 1000);
+  try {
+    const result = await runPipeline(createClient(controller.signal), input, { io, onProgress, inputLabel: label, top: 5 });
+    lastResult = result;
+    renderReport(result);
+  } catch (err) {
+    renderFailure(err);
+  } finally {
+    clearInterval(timer);
+    $("analyze").disabled = false;
+    $("stop").disabled = true;
+    hide("questions");
+    controller = null;
+  }
+}
+
+$("analyze").addEventListener("click", () => {
+  hide("error");
+  let input = attached;
+  let label = attachedLabel;
+  if (!input) {
+    const text = $("text").value;
+    if (new TextEncoder().encode(text).length > MAX_TEXT_BYTES) return showError("That text is over 50 KB. Trim it down.");
+    try { input = textInput(text); } catch (err) { return showError("Type a description, or attach a file."); }
+    label = "typed description";
+  }
+  start(input, label);
+});
+
+$("stop").addEventListener("click", () => {
+  if (pending) { const { resolve } = pending; pending = null; resolve({ stopped: true, answers: [] }); }
+  controller?.abort();
+});
+
+$("reset").addEventListener("click", () => {
+  $("stop").click();
+  attached = null; attachedLabel = "";
+  $("attachment").textContent = "";
+  $("file").value = "";
+  $("text").value = "";
+  resetOutput();
+  hide("progress");
+});
+
+$("retry").addEventListener("click", () => { if (lastInput) start(lastInput.input, lastInput.label); });
+
+// ---- questions -------------------------------------------------------------
+function renderQuestions(questions, round, stage) {
+  $("questions-title").textContent = `Round ${round} — ${stage === "preprocess" ? "about the workflow" : "about each step"}`;
+  $("questions-banner").textContent = BANNERS[stage];
+  const form = $("questions-form");
+  form.replaceChildren();
+  for (const q of questions) {
+    const fs = document.createElement("fieldset");
+    const legend = document.createElement("legend");
+    if (isChoiceQuestion(q)) {
+      legend.textContent = q.prompt;           // the stem alone; options are rendered as controls
+      fs.appendChild(legend);
+      for (const token of [...q.options, ""]) {
+        const label = document.createElement("label");
+        label.className = "option";
+        const radio = Object.assign(document.createElement("input"), { type: "radio", name: q.id, value: token });
+        if (token === "") radio.checked = true;
+        label.append(radio, ` ${token === "" ? "Not sure" : displayToken(token)}`);
+        fs.appendChild(label);
+      }
+    } else {
+      legend.textContent = q.text;
+      fs.appendChild(legend);
+      const input = Object.assign(document.createElement("input"), { type: "text", name: q.id, placeholder: "Leave blank to skip" });
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
+      fs.appendChild(input);
+    }
+    form.appendChild(fs);
+  }
+  show("questions");
+  form.querySelector("input")?.focus();
+  if (AUTO) autoAnswer(form);
+}
+
+/** Deep-link mode: fill every question (or skip them all) and continue, so a headless browser can drive a run. */
+function autoAnswer(form) {
+  setTimeout(() => {
+    if (!pending) return;
+    if (AUTO === "skip") return $("skip").click();
+    for (const input of form.querySelectorAll('input[type="text"]')) input.value = "That step validates the order";
+    for (const q of pending.questions) {
+      if (isChoiceQuestion(q)) {
+        const second = form.querySelector(`input[name="${CSS.escape(q.id)}"][value="${CSS.escape(q.options[1] ?? q.options[0])}"]`);
+        if (second) second.checked = true;
+      }
+    }
+    $("continue").click();
+  }, 50);
+}
+
+function collectAnswers() {
+  const data = new FormData($("questions-form"));
+  return pending.questions.map((q) => ({ questionId: q.id, answer: (data.get(q.id) ?? "").toString() }));
+}
+function submitBatch(batch) {
+  if (!pending) return;                      // prevents double submits
+  const { resolve } = pending;
+  pending = null;
+  hide("questions");
+  resolve(batch);
+}
+$("continue").addEventListener("click", () => submitBatch({ stopped: false, answers: collectAnswers() }));
+$("skip").addEventListener("click", () => submitBatch({ stopped: false, answers: pending.questions.map((q) => ({ questionId: q.id, answer: "" })) }));
+$("finish").addEventListener("click", () => submitBatch({ stopped: true, answers: collectAnswers().filter((a) => a.answer !== "") }));
+
+// ---- output ----------------------------------------------------------------
+function renderReport(result) {
+  $("report-status").textContent = `(${result.status}; preprocess ${result.preprocess.status}, recommend ${result.recommendation.status})`;
+  $("report-text").textContent = result.report;
+  $("result-json").textContent = JSON.stringify(result, null, 2);
+  show("report");
+}
+
+function renderFailure(err) {
+  if (err?.name === "AbortError" || err?.cause?.name === "AbortError") return addProgress("Stopped.");
+  let text = err?.message ?? String(err);
+  let stage = "";
+  if (err instanceof PipelineStageError) {
+    stage = `Failed while: ${err.stage}`;
+    const cause = err.cause;
+    if (cause instanceof LlmHttpError) {
+      let code = "";
+      try { code = JSON.parse(cause.body ?? "").error ?? ""; } catch { /* not the proxy's JSON */ }
+      text = `The proxy answered HTTP ${cause.status}${code ? ` (${code})` : ""}.`;
+    } else if (cause?.name === "AbortError") {
+      return addProgress("Stopped.");
+    } else {
+      text = cause?.message ?? text;
+    }
+  }
+  $("error-text").textContent = text;
+  $("error-stage").textContent = stage;
+  show("error");
+}
+
+function showError(text) { $("error-text").textContent = text; $("error-stage").textContent = ""; show("error"); }
+function addProgress(line) { const li = document.createElement("li"); li.textContent = line; $("progress-lines").appendChild(li); }
+function resetOutput() {
+  $("progress-lines").replaceChildren();
+  $("elapsed").textContent = "";
+  $("result-json").hidden = true;
+  hide("report"); hide("error"); hide("questions");
+}
+function show(id) { $(id).hidden = false; }
+function hide(id) { $(id).hidden = true; }
+
+$("copy").addEventListener("click", () => navigator.clipboard.writeText(lastResult?.report ?? ""));
+
+// ---- deep link: ?text=…&auto=answer|skip, or ?pixel=1&auto=… ---------------
+const params = new URLSearchParams(location.search);
+const AUTO = params.get("auto");
+if (params.get("pixel") === "1") {
+  // A valid 1×1 PNG: the smallest thing that takes the image path end to end.
+  const png = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"), (c) => c.charCodeAt(0));
+  await attachFile(new File([png], "pixel.png", { type: "image/png" }));
+}
+if (params.get("text")) $("text").value = params.get("text");
+if (AUTO) $("analyze").click();
+$("show-json").addEventListener("click", () => { $("result-json").hidden = !$("result-json").hidden; });
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+Order fulfillment at our warehouse:
+
+A new customer order comes in through the web shop. First the system checks
+whether every item is in stock. If everything is in stock, the warehouse team
+picks and packs the order and hands it to the carrier for shipping; once the
+carrier confirms delivery, the order is complete. If something is out of
+stock, purchasing places a backorder with the supplier and the order waits
+until the missing items arrive, after which it goes back to the stock check.
