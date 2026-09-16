@@ -1,6 +1,6 @@
 # Workflow helper: local demo
 
-Runs the workflow helper in your browser, on this computer. `run.py` is a small Flask server. It serves the page and forwards the page's LLM calls to your LLM endpoint with the key added, so the key never reaches the browser. It listens on `127.0.0.1` only, so nobody else can open it.
+Runs the workflow helper in your browser, on this computer. `run.py` is a small Flask server. It serves the page and forwards the page's LLM calls to your LLM endpoint with the key added, so the key never reaches the browser. It listens on `127.0.0.1` only, so nobody else can open it. To give coworkers a URL, see [Share it on OpenShift](#share-it-on-openshift).
 
 ## Setup (once)
 
@@ -73,6 +73,52 @@ KAIJU_LLM_VISION_MODEL=<model name, for images>
   - `HTTP 401` or `HTTP 403`: the LLM rejected the key.
   - `HTTP 404` or `HTTP 400`: read the Response; usually a wrong endpoint path or model name.
   - "could not reach … Failed to fetch": the server isn't running. Check its window.
+
+## Share it on OpenShift
+
+This gives the demo its own URL for coworkers. OpenShift builds it straight from this repo on GitHub, so you only need the web console, not `oc`. There's no login: anyone who can open the URL can use the tool, and through it your LLM key.
+
+**Before you start:** commit and push this repo to GitHub. The cluster builds what's on GitHub, not what's on your laptop.
+
+1. **Create a project**, or pick one you can deploy to.
+2. **Store the key in a Secret.** Go to **Secrets → Create → Key/value secret**.
+   - **Name:** `workflow-helper-llm`
+   - **Key:** `KAIJU_LLM_API_KEY`
+   - **Value:** the key
+3. **Import the app.** Open **+Add → Import from Git**. In newer consoles, it's the **+** icon at the top.
+   - **Git Repo URL:** `https://github.com/gchen9405/workflow_helper`
+   - **Show advanced Git options → Context dir:** `/demo`
+   - **Builder image:** Python (it's usually detected on its own). Any version 3.9 or newer works.
+   - **Name:** `workflow-helper`
+   - **Resource type:** Deployment
+   - **Target port:** `8080`. Leave **Create a route** checked.
+4. **Add the settings.** Before you click Create, open **Deployment** in the advanced options at the bottom of the form, and add these environment variables:
+
+   | Name | Value |
+   |---|---|
+   | `APP_FILE` | `run.py` |
+   | `HOST` | `0.0.0.0` |
+   | `KAIJU_LLM_ENDPOINT` | the endpoint, as in your `.env` |
+   | `KAIJU_LLM_MODEL` | the model name |
+   | `KAIJU_LLM_VISION_MODEL` | the vision model name (optional, for images) |
+
+   For the key, click **Add from ConfigMap or Secret**. Set the name to `KAIJU_LLM_API_KEY`, then pick the `workflow-helper-llm` secret and its key.
+
+   Then click **Create**.
+5. **Wait for the build.** It takes a few minutes. Watch **Builds → workflow-helper → Logs**. It's done when the pod shows **Running**.
+6. **Raise the Route timeout.** LLM calls can take longer than the Route's default of 30 seconds. Go to **Networking → Routes → workflow-helper → Actions → Edit annotations**, and add:
+   - **Key:** `haproxy.router.openshift.io/timeout`
+   - **Value:** `300s`
+7. **Open the Route's Location URL** and try the test inputs. That URL is the one to share.
+
+**Update:** push to GitHub, then go to **Builds → workflow-helper → Actions → Start build**. The new pod replaces the old one when the build finishes.
+
+**If something goes wrong:**
+- **The build fails cloning the repo:** the cluster can't reach GitHub. Build from your laptop with `oc` instead.
+- **The build fails at `pip install`:** the cluster can't reach PyPI. Ask the cluster admins for their Python package mirror URL, and add it as the build environment variable `PIP_INDEX_URL`. In the console, that's **BuildConfig → Environment**. Then start the build again.
+- **The page loads, but a run fails with `HTTP 502 (llm_unreachable)`:** the pod can't reach the LLM. Read `detail` as described under [If something goes wrong](#if-something-goes-wrong).
+- **A run fails after exactly 30 seconds:** step 6 is missing.
+- **Changed a setting?** Edit it under **Deployment → Environment**. The pod restarts on its own.
 
 ## About the files
 

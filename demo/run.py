@@ -4,8 +4,9 @@
 
 The pipeline runs in the browser; this server serves the page and forwards its
 LLM calls with the key added (app/routes/workflow_helper_routes.py). It listens
-on 127.0.0.1 only. Settings are environment variables, set in the window or
-kept in a `.env` file (env_file.py); see README.md.
+on 127.0.0.1 only, unless HOST says otherwise (HOST=0.0.0.0 on OpenShift).
+Settings are environment variables, set in the window or kept in a `.env` file
+(env_file.py); see README.md.
 """
 import os
 
@@ -34,6 +35,7 @@ def favicon():
 
 
 if __name__ == "__main__":
+    host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "8080"))
     for path, names in ENV_FILES:
         # Names only, never values: this line must not be able to print the key.
@@ -45,4 +47,4 @@ if __name__ == "__main__":
     if missing:
         print(f"Not set: {', '.join(missing)}. The page answers {{\"error\": \"disabled\"}} until they are (see README.md).")
     print(f"Workflow helper demo: http://127.0.0.1:{port}/   (Ctrl+C to stop)")
-    app.run(host="127.0.0.1", port=port, threaded=True)
+    app.run(host=host, port=port, threaded=True)
