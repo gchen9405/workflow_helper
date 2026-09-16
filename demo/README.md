@@ -35,6 +35,25 @@ Open **http://127.0.0.1:8080/**.
 - `not-a-workflow.txt`: a short notice
 - a flowchart screenshot, dropped or pasted onto the page (needs a vision model set)
 
+## Keep the settings in a file (so you don't paste them every time)
+
+Instead of the `$env:` lines above, put the settings in `demo\.env`:
+
+```
+KAIJU_LLM_ENDPOINT=https://llm-host/v1
+KAIJU_LLM_MODEL=<model name>
+KAIJU_LLM_API_KEY=<the key>
+KAIJU_LLM_VISION_MODEL=<model name, for images>
+```
+
+`python run.py` reads it at startup and prints which names it took, never their values. Notes:
+
+- **Git ignores `.env`**, so the key stays on this machine. Anyone who can read the file can read the key, so keep it out of shared folders.
+- **Everything after `=` is the value.** Don't put a trailing `# comment` on a line; it becomes part of the value.
+- **A variable set in the window wins** over the file, which is handy for trying another model for one run.
+- **A repo-root `.env` works too.** If you already have one for the TypeScript CLI, its `LLM_ENDPOINT`, `LLM_MODEL` and `LLM_API_KEY` fill in the `KAIJU_LLM_*` settings when those aren't set, so one file can drive both.
+- **Ignore Flask's tip** that says "There are .env files present. Install python-dotenv to use them." The file has already been read by then; nothing to install.
+
 ## Update
 
 `git pull`, then start `python run.py` again.
