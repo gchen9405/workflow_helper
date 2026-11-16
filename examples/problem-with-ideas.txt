@@ -1,0 +1,10 @@
+Problem: reviewing new papers for our team's reading list is chaotic. People
+post links everywhere and we never decide what actually gets discussed.
+
+What I'd like: each week we have a short, agreed list of papers to discuss,
+and nothing worth reading gets lost.
+
+My rough idea so far: someone suggests a paper in a shared channel; once a
+week the team lead looks through the suggestions and picks the ones for the
+meeting. I'm not sure what should happen to the ones that aren't picked, and
+whether we need some kind of vote.

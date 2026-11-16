@@ -1,0 +1,7 @@
+Quarterly revenue by region (USD thousands)
+
+Region     Q1      Q2      Q3      Q4
+North      1,240   1,310   1,295   1,402
+South        980   1,015   1,050   1,120
+West       1,560   1,610   1,590   1,700
+East         870     905     940     990

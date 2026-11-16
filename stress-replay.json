@@ -1,0 +1,320 @@
+{
+  "status": "partial",
+  "schema": {
+    "name": null,
+    "description": "Make sure microscopy requests do not reach the microscope until the sample prep is known to be right.",
+    "problem": "Half the time the first scan is wasted because the sample prep notes users gave were incomplete or contradicted the booking form; the facility redoes maybe 10 scans a month and microscope time is expensive. A typical conflict: the form says \"fixed sample, 20x\" but the notes describe live cells, which needs a totally different setup. About 80% of requests are the same four or five sample types; the rest (fixed tissue, live cells, anything patient-derived) have their own rules and need someone experienced. Experienced users get it wrong about as often as new ones.",
+    "goal": "A request does not reach the microscope until we know the prep is right, and the user is told within a day if their prep needs changing.",
+    "constraints": [
+      "Everything stays on the hospital network",
+      "The facility uses the iLab booking system",
+      "Hospital rule (as far as the person knows): anything with patient identifiers can't go to an outside service; the IT security office decides"
+    ],
+    "task": {
+      "inputs": "microscopy requests: free-text sample prep notes emailed by users and the booking form",
+      "inputShape": "mixed",
+      "rulesSpecifiable": "mostly",
+      "variability": "medium",
+      "errorCost": null,
+      "frequency": "redo maybe 10 scans a month (total request volume not stated)",
+      "auditability": null
+    },
+    "profile": {
+      "technicalLevel": "none",
+      "background": "Runs a four-person imaging core facility",
+      "tools": [
+        {
+          "name": "iLab booking system",
+          "familiarity": "basic"
+        },
+        {
+          "name": "Excel",
+          "familiarity": "fluent"
+        }
+      ],
+      "notes": [
+        "The person does not code",
+        "The facility has four people, including Priya",
+        "Prep notes sometimes mention patient-derived samples",
+        "Microscope time is expensive",
+        "Would rather not maintain anything that needs scripting; none of the team have time for that",
+        "Priya is leaving the facility in January",
+        "One of the techs writes Python scripts for the microscope; it's the person themselves who doesn't code, not the whole team"
+      ]
+    },
+    "ideas": [
+      {
+        "id": "llm_conflict_check",
+        "summary": "an LLM that reads the free-text prep notes and flags anything that conflicts with the booking form",
+        "rationale": "The techs don't have time to read every email, so something that reads all of them and only flags the odd ones would take that off their plate.",
+        "concerns": "Not sure the LLM idea is allowed: the notes sometimes mention patient-derived samples, and as far as they know it's a real hospital rule that anything with patient identifiers can't go to an outside service; the IT security office would decide."
+      },
+      {
+        "id": "mandatory_checklist",
+        "summary": "a mandatory checklist the user fills before booking",
+        "rationale": null,
+        "concerns": null
+      }
+    ],
+    "nodes": [
+      {
+        "id": "user_books_slot",
+        "type": "start",
+        "label": "User books a slot",
+        "description": null,
+        "actor": "user"
+      },
+      {
+        "id": "user_emails_prep_notes",
+        "type": "task",
+        "label": "User emails prep notes",
+        "description": null,
+        "actor": "user"
+      },
+      {
+        "id": "tech_reads_notes",
+        "type": "decision",
+        "label": "Does a tech happen to read the notes?",
+        "description": null,
+        "actor": "tech"
+      },
+      {
+        "id": "tech_replies_with_questions",
+        "type": "task",
+        "label": "Tech replies with questions",
+        "description": null,
+        "actor": "tech"
+      },
+      {
+        "id": "scan_runs",
+        "type": "end",
+        "label": "The scan runs",
+        "description": null,
+        "actor": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "user_books_slot",
+        "to": "user_emails_prep_notes",
+        "label": null
+      },
+      {
+        "id": "e2",
+        "from": "user_emails_prep_notes",
+        "to": "tech_reads_notes",
+        "label": null
+      },
+      {
+        "id": "e3",
+        "from": "tech_reads_notes",
+        "to": "tech_replies_with_questions",
+        "label": "tech reads them"
+      },
+      {
+        "id": "e4",
+        "from": "tech_reads_notes",
+        "to": "scan_runs",
+        "label": null
+      },
+      {
+        "id": "e5",
+        "from": "tech_replies_with_questions",
+        "to": "scan_runs",
+        "label": null
+      }
+    ],
+    "provenance": {
+      "workflow.description": "original",
+      "workflow.problem": "user_elicited",
+      "workflow.goal": "user_elicited",
+      "constraint.0": "original",
+      "constraint.1": "original",
+      "task.inputs": "original",
+      "task.frequency": "original",
+      "profile.technicalLevel": "original",
+      "profile.background": "original",
+      "profile.tool.ilab_booking_system": "original",
+      "profile.tool.excel": "original",
+      "profile.note.0": "original",
+      "profile.note.1": "original",
+      "profile.note.2": "original",
+      "profile.note.3": "original",
+      "idea.llm_conflict_check": "original",
+      "idea.llm_conflict_check.concerns": "user_elicited",
+      "idea.mandatory_checklist": "original",
+      "node.user_books_slot": "original",
+      "node.user_books_slot.type": "original",
+      "node.user_books_slot.label": "original",
+      "node.user_books_slot.actor": "original",
+      "node.user_emails_prep_notes": "original",
+      "node.user_emails_prep_notes.type": "original",
+      "node.user_emails_prep_notes.label": "original",
+      "node.user_emails_prep_notes.actor": "original",
+      "node.tech_reads_notes": "original",
+      "node.tech_reads_notes.type": "original",
+      "node.tech_reads_notes.label": "original",
+      "node.tech_reads_notes.actor": "original",
+      "node.tech_replies_with_questions": "original",
+      "node.tech_replies_with_questions.type": "original",
+      "node.tech_replies_with_questions.label": "original",
+      "node.tech_replies_with_questions.actor": "original",
+      "node.scan_runs": "original",
+      "node.scan_runs.type": "original",
+      "node.scan_runs.label": "original",
+      "edge.e1": "original",
+      "edge.e2": "original",
+      "edge.e3": "original",
+      "edge.e3.label": "original",
+      "edge.e4": "original",
+      "edge.e5": "original",
+      "task.inputShape": "user_elicited",
+      "task.rulesSpecifiable": "user_elicited",
+      "task.variability": "user_elicited",
+      "profile.note.4": "user_elicited",
+      "idea.llm_conflict_check.rationale": "user_elicited",
+      "constraint.2": "user_elicited",
+      "profile.note.5": "user_elicited",
+      "profile.note.6": "user_elicited"
+    }
+  },
+  "openGaps": [
+    {
+      "id": "missing_task_fact:errorCost",
+      "gap": {
+        "kind": "missing_task_fact",
+        "field": "errorCost"
+      },
+      "description": "What happens when a step gets it wrong — a minor annoyance, real rework or cost, or serious harm?"
+    },
+    {
+      "id": "unexplored_idea:mandatory_checklist",
+      "gap": {
+        "kind": "unexplored_idea",
+        "ideaId": "mandatory_checklist"
+      },
+      "description": "The person has an idea — \"a mandatory checklist the user fills before booking\" — but not why they think it would help, or what they are unsure about. What is the reasoning behind it, and what are the doubts?"
+    },
+    {
+      "id": "unlabeled_branch:tech_reads_notes",
+      "gap": {
+        "kind": "unlabeled_branch",
+        "nodeId": "tech_reads_notes",
+        "edgeIds": [
+          "e4"
+        ]
+      },
+      "description": "From \"Does a tech happen to read the notes?\" (tech_reads_notes), the workflow branches to \"The scan runs\" (scan_runs), but the conditions are not stated. What determines which path is taken?"
+    }
+  ],
+  "reason": "the person ended the conversation with gaps still open",
+  "intermediate": "WORKFLOW: UNKNOWN\nDESCRIPTION: Make sure microscopy requests do not reach the microscope until the sample prep is known to be right.\nPROBLEM: Half the time the first scan is wasted because the sample prep notes users gave were incomplete or contradicted the booking form; the facility redoes maybe 10 scans a month and microscope time is expensive.\nGOAL: A request does not reach the microscope until we know the prep is right.\nCONSTRAINTS:\nEverything stays on the hospital network\nThe facility uses the iLab booking system\nTASK:\ninputs=microscopy requests: free-text sample prep notes emailed by users and the booking form | shape=mixed | rules=UNKNOWN | variability=UNKNOWN | error_cost=medium | frequency=redo maybe 10 scans a month (total request volume not stated) | auditability=UNKNOWN\nTECHNICAL LEVEL: none\nBACKGROUND: Runs a four-person imaging core facility\nTOOLS:\niLab booking system | familiarity=basic\nExcel | familiarity=fluent\nNOTES:\nThe person does not code\nThe facility has four people, including Priya\nPrep notes sometimes mention patient-derived samples\nMicroscope time is expensive\nIDEAS:\nllm_conflict_check | summary=an LLM that reads the free-text prep notes and flags anything that conflicts with the booking form | rationale=UNKNOWN | concerns=Not sure the LLM idea is allowed; the notes sometimes mention patient-derived samples\nmandatory_checklist | summary=a mandatory checklist the user fills before booking | rationale=UNKNOWN | concerns=UNKNOWN\npriya_phone_call | summary=maybe just have Priya phone every new user | rationale=UNKNOWN | concerns=UNKNOWN\nNODES:\nuser_books_slot | type=start | label=User books a slot | actor=user | note=UNKNOWN\nuser_emails_prep_notes | type=task | label=User emails prep notes | actor=user | note=UNKNOWN\ntech_reads_notes | type=decision | label=Does a tech happen to read the notes? | actor=tech | note=UNKNOWN\ntech_replies_with_questions | type=task | label=Tech replies with questions | actor=tech | note=UNKNOWN\nscan_runs | type=end | label=The scan runs | actor=UNKNOWN | note=UNKNOWN\nEDGES:\nuser_books_slot -> user_emails_prep_notes | label=UNKNOWN\nuser_emails_prep_notes -> tech_reads_notes | label=UNKNOWN\ntech_reads_notes -> tech_replies_with_questions | label=tech reads them\ntech_reads_notes -> scan_runs | label=UNKNOWN\ntech_replies_with_questions -> scan_runs | label=UNKNOWN",
+  "transcript": [
+    {
+      "role": "assistant",
+      "text": "Here's what I understand so far. You run a four-person imaging core. About half the time the first scan is wasted because a user's emailed prep notes are incomplete or contradict their iLab booking form, which means roughly 10 redone scans a month on expensive microscope time. You want no request to reach the microscope until you know the prep is right. Today it goes: the user books a slot, emails prep notes, and if a tech happens to read them, the tech replies with questions before the scan runs. You've floated three ideas: an LLM that flags conflicts between the notes and the form, a mandatory checklist before booking, or having Priya phone every new user.\n\nA few things to check first:\n\n1. It sounds like the prep notes arrive as free-text emails and the booking form is a structured iLab form with set fields. Is that right? And when a note is \"wrong\", is it usually something you could spot by comparing specific fields (like fixation method or sample type), or does it take reading and know-how to notice?\n\n2. In the current flow, when does a scan go ahead without a tech reading the notes? Is it when everyone's busy, when the booking is last-minute, or something else?\n\n3. It sounds like a wrong call means a wasted scan and lost microscope time, plus the user having to come back, rather than any harm to a sample or patient. Is that fair, or are there cases where it's worse, such as an irreplaceable patient-derived sample?"
+    },
+    {
+      "role": "user",
+      "text": "Mostly, yes. About 80% of requests are the same four or five sample types and I could write a checklist for those. The rest need someone experienced: fixed tissue, live cells, and anything patient-derived all have their own rules. A typical conflict is the form says \"fixed sample, 20x\" but the notes describe live cells, which needs a totally different setup. Honestly I'd rather not maintain anything that needs scripting, none of us have time for that.",
+      "patches": [
+        {
+          "op": "set_task_field",
+          "field": "inputShape",
+          "value": "mixed"
+        },
+        {
+          "op": "set_task_field",
+          "field": "rulesSpecifiable",
+          "value": "mostly"
+        },
+        {
+          "op": "set_task_field",
+          "field": "variability",
+          "value": "medium"
+        },
+        {
+          "op": "set_workflow_field",
+          "field": "problem",
+          "value": "Half the time the first scan is wasted because the sample prep notes users gave were incomplete or contradicted the booking form; the facility redoes maybe 10 scans a month and microscope time is expensive. A typical conflict: the form says \"fixed sample, 20x\" but the notes describe live cells, which needs a totally different setup. About 80% of requests are the same four or five sample types; the rest (fixed tissue, live cells, anything patient-derived) have their own rules and need someone experienced."
+        },
+        {
+          "op": "add_profile_note",
+          "value": "Would rather not maintain anything that needs scripting; none of the team have time for that"
+        }
+      ],
+      "accepted": []
+    },
+    {
+      "role": "assistant",
+      "text": "Thanks, that helps. So roughly 80% of requests are four or five routine sample types you could write a checklist for, and the rest (fixed tissue, live cells, anything patient-derived) need an experienced eye. I've also noted that nothing should depend on scripting the team would have to maintain.\n\nTwo things you didn't get to last time:\n\n1. What does a wrong call actually cost? Is it mostly a wasted scan and the user rebooking, or can it be worse? For example, could a patient-derived or live sample be used up or lost so it can't be re-imaged?\n\n2. When does a scan go ahead without a tech reading the notes first? Is it when the team is busy, when the booking is last-minute, when the email arrives late, or something else?\n\nI'd also like to understand your first idea, the LLM that flags conflicts between the notes and the form. What made you think of it? Is it mainly that nobody has time to read every email? You mentioned you're not sure it's allowed because of patient-derived samples. Is that a hospital rule you know of, or more of a worry you'd want checked?"
+    },
+    {
+      "role": "user",
+      "text": "The LLM idea is because the techs don't have time to read every email, so something that reads all of them and only flags the odd ones would take that off their plate. The patient-data thing is a real hospital rule as far as I know, anything with patient identifiers can't go to an outside service, and our IT security office would be the ones to decide. Actually scrap the Priya idea, she's leaving in January, and anyway experienced users get it wrong about as often as new ones.",
+      "patches": [
+        {
+          "op": "set_idea_field",
+          "ideaId": "llm_conflict_check",
+          "field": "rationale",
+          "value": "The techs don't have time to read every email, so something that reads all of them and only flags the odd ones would take that off their plate."
+        },
+        {
+          "op": "set_idea_field",
+          "ideaId": "llm_conflict_check",
+          "field": "concerns",
+          "value": "Not sure the LLM idea is allowed: the notes sometimes mention patient-derived samples, and as far as they know it's a real hospital rule that anything with patient identifiers can't go to an outside service; the IT security office would decide."
+        },
+        {
+          "op": "add_constraint",
+          "value": "Hospital rule (as far as the person knows): anything with patient identifiers can't go to an outside service; the IT security office decides"
+        },
+        {
+          "op": "remove_idea",
+          "ideaId": "priya_phone_call"
+        },
+        {
+          "op": "add_profile_note",
+          "value": "Priya is leaving the facility in January"
+        },
+        {
+          "op": "set_workflow_field",
+          "field": "problem",
+          "value": "Half the time the first scan is wasted because the sample prep notes users gave were incomplete or contradicted the booking form; the facility redoes maybe 10 scans a month and microscope time is expensive. A typical conflict: the form says \"fixed sample, 20x\" but the notes describe live cells, which needs a totally different setup. About 80% of requests are the same four or five sample types; the rest (fixed tissue, live cells, anything patient-derived) have their own rules and need someone experienced. Experienced users get it wrong about as often as new ones."
+        }
+      ],
+      "accepted": []
+    },
+    {
+      "role": "assistant",
+      "text": "Got it. The LLM idea is about taking the reading load off the techs so they only see the odd ones out, and the patient-identifier rule is real as far as you know, with IT security having the final say. I've dropped the Priya idea, and noted that experienced users get it wrong as often as new ones, so this isn't just a newcomer problem.\n\nA few things still open:\n\n1. The mandatory checklist before booking: what do you hope it would fix? Is it mainly to stop the form and the notes contradicting each other, or to make sure nothing gets left out? And what worries you about it? For example, users ticking boxes without reading, or the checklist not fitting the non-routine cases.\n\n2. I want to be sure about what a wrong call costs. My understanding is it's mostly a wasted scan and a rebooking. Is that right, or can a sample sometimes be lost for good, like a live or patient-derived one that can't be re-imaged?\n\n3. Today, when does a scan go ahead without anyone reading the notes? Is it just whenever the techs are too busy, or is there a pattern, like last-minute bookings or notes arriving late?"
+    },
+    {
+      "role": "user",
+      "text": "One thing is off: it's not that nobody codes, one of the techs writes Python scripts for the microscope. It's me who doesn't. And the goal is a bit more than \"confirmed right\", we want the user told within a day if their prep needs changing.",
+      "patches": [
+        {
+          "op": "add_profile_note",
+          "value": "One of the techs writes Python scripts for the microscope; it's the person themselves who doesn't code, not the whole team"
+        },
+        {
+          "op": "set_workflow_field",
+          "field": "goal",
+          "value": "A request does not reach the microscope until we know the prep is right, and the user is told within a day if their prep needs changing."
+        }
+      ],
+      "accepted": []
+    },
+    {
+      "role": "assistant",
+      "text": "Thanks for both corrections. You're the one who doesn't code, and one of your techs writes Python scripts for the microscope. The goal now also includes telling the user within a day if their prep needs changing.\n\nThat raises one question about your earlier point. You said you'd rather not maintain anything that needs scripting because nobody has time. Does that still hold with this tech in mind? Or could they look after something small if it didn't eat much of their week?\n\nTwo other things I still don't have:\n\n1. What does a wrong call cost? My guess is it's mostly a wasted scan and a rebooking. Is that right, or can a live or patient-derived sample sometimes be lost and can't be re-imaged?\n\n2. The mandatory checklist before booking: what would you want it to catch, and what makes you hesitate about it?"
+    },
+    {
+      "role": "user",
+      "text": "Yes, that's everything.",
+      "patches": [],
+      "accepted": []
+    }
+  ]
+}

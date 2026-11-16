@@ -1,0 +1,45 @@
+{
+  "name": "workflow-helper",
+  "version": "0.1.0",
+  "description": "Turns flowchart images or free-text process descriptions into a validated, structured workflow graph schema, talking through whatever the input left out in a back-and-forth conversation.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    }
+  },
+  "bin": {
+    "workflow-helper": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "tsx src/cli.ts",
+    "inbox": "tsx src/cli.ts --inbox",
+    "check": "tsx src/cli.ts --check",
+    "serve": "tsx examples/server.ts"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  }
+}

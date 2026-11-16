@@ -1,0 +1,5 @@
+Our research group keeps losing track of bug reports from the people who use
+our internal analysis tool. Reports come in by email, in chat, and in person;
+some get fixed, some get forgotten, and nobody can say what is outstanding.
+We're three developers and one PI, and everything has to stay inside our
+institution's network (no external SaaS).
